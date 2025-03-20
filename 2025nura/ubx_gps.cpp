@@ -15,7 +15,7 @@ void UbxGPS::initialize() {
     
     set_config(UBX_config::PRT);
     set_config(UBX_config::NAV5);
-    set_config(UBX_config::RATE);
+    set_config(UBX_config::RATE); // 5Hz로 설정
     set_config(UBX_config::PMS);
 
     disable_all_nmea(true);

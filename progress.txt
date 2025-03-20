@@ -35,3 +35,7 @@ press[2] = baro.get_relative_altitude();
 여기서 우리는 get_relative_altitude만 구현해도 상관 없긴 함. 나머지 값들은 알아봤자임.
 
 위의 두 센서에서도 필요한 것만 남기고 나머지는 쳐냅시다... 이런식으로 packet을 구현하며 나머지 센서들에서 내보내줄 데이터를 쳐내면 될듯.
+
+
+---------------------
+packet은 get_imu_gps랑 get_imu만 구현
