@@ -1,14 +1,16 @@
 ///////////////////2025 NURA AHRS & Wireless Communication/////////////////////
-// Last update: 2025.03.19
+// Last update: 2025.03.20
 
 #include "EBIMU_AHRS.h"
 #include "ubx_gps.h"
 
 // 핀 설정
-#define GPS_TX 11 // GPS의 TX핀을 11번에 지정
-#define GPS_RX 12 // GPS의 RX핀을 12번에 지정
+#define RF_TX 11 // HC-12의 TX핀을 11번에 지정
+#define RF_RX 12 // HC-12의 RX핀을 12번에 지정
 #define IMU_TX 9 // IMU의 TX핀을 9번에 지정
 #define IMU_RX 10 // IMU의 RX핀을 10번에 지정
+#define GPS_SDA A0 // GPS의 SDA핀을 A0에 지정
+#define GPS_SCL A1 // GPS의 SCL핀을 A1에 지정
 
 // Debuging pins
 #define threadPin1 2 // 스레드 확인용 디버깅 핀. LED를 연결하여 깜빡이도록 구현 가능. D2에 해당
@@ -22,7 +24,7 @@ float roll, pitch, yaw; // AHRS의 Roll, Pitch, Yaw
 float accelZ; // Z축 가속도
 float maxG = 0; // 발사 직후의 최대 G값
 
-bool threadFlag1 = false; // 스레드 시작을 알리는 플래그그
+bool threadFlag1 = false; // 스레드 시작을 알리는 플래그
 
 void setup()
 {
