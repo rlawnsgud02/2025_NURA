@@ -2,7 +2,7 @@
 #define __UBX_GPS_H__
 
 #include <Arduino.h>
-#include <HardwareSerial.h>
+#include <SoftwareSerial.h>
 #include "ubx_config.h"
 
 struct GpsData {
@@ -69,7 +69,7 @@ namespace UBX_ID // UBX Payload ID
 
 class UbxGPS {
 private:
-    HardwareSerial &GPSserial;  // Arduino HardwareSerial 사용
+    SoftwareSerial& GPSserial;
     int rxPin, txPin; // GPS의 RX, TX 핀
     char buffer[100];  // 수신 버퍼
 
@@ -81,7 +81,7 @@ private:
     int byte_to_int(const char *ptr, int len); 
 
 public:
-    UbxGPS(HardwareSerial &serial, int, int);
+    UbxGPS(SoftwareSerial& serial);
     void initialize();
     bool get_gps_data(GpsData &data);
     bool is_updated();

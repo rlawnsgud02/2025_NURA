@@ -16,7 +16,6 @@ void EBIMU_AHRS::initialize() {
     sendCommand("<sof1>"); // Euler Angle(RPY) 출력
     sendCommand("<soa1>"); // 가속도 데이터 출력 활성화 (X, Y, Z 전체). RPY값 뒤에 출력됨.
 
-
     Serial.println("\n------| IMU Initialize Done! |------\n");
 }
 

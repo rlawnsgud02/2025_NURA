@@ -3,19 +3,16 @@
 // Ublox M9N을 이용하여 UBX-NAV-PVT 데이터를 받는 클래스
 // Last update: 2025.03.19
 
-UbxGPS::UbxGPS(HardwareSerial &serial, int rxPin, int txPin)
-    : GPSserial(serial), rxPin(rxPin), txPin(txPin), new_update_flag(false) {}
+UbxGPS::UbxGPS(SoftwareSerial& serial)
+    : GPSserial(serial), new_update_flag(false) {}
 
 
 void UbxGPS::initialize() {
     Serial.println("\n-----| GPS Initializing.. |-----\n");
-    GPSserial.begin(9600, SERIAL_8N1, rxPin, txPin);
-    delay(3000);
-    GPSserial.begin(115200, SERIAL_8N1, rxPin, txPin); // 115200으로 설정. PVT의 100바이트 데이터 통신을 위해서는 9600보다 높은 속도가 필요.
-    
+
     set_config(UBX_config::PRT);
     set_config(UBX_config::NAV5);
-    set_config(UBX_config::RATE); // 5Hz로 설정
+    set_config(UBX_config::RATE);
     set_config(UBX_config::PMS);
 
     disable_all_nmea(true);
