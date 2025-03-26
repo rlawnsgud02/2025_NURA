@@ -14,7 +14,9 @@ void EBIMU_AHRS::initialize() {
     sendCommand("<soc1>"); // ASCII 모드 설정
     sendCommand("<sor10>"); // 100Hz 출력 속도 설정
     sendCommand("<sof1>"); // Euler Angle(RPY) 출력
-    sendCommand("<soa1>"); // 가속도 데이터 출력 활성화 (X, Y, Z 전체). RPY값 뒤에 출력됨.
+    sendCommand("<soa1>"); // 가속도 출력 활성화 (X, Y, Z 전체). RPY값 뒤에 출력됨.
+    sendCommand("<sog1>"); // 자이로 출력 활성화
+    sendCommand("<som1>"); // 지자기 출력 활성화
 
     Serial.println("\n------| IMU Initialize Done! |------\n");
 }
@@ -43,28 +45,50 @@ void EBIMU_AHRS::parseData() {
         int lastComma = 0;
         int nextComma;
 
-        // 데이터 파싱 (쉼표 단위로 끊어서 배열에 저장)
-        for (int index = 0; index < 5; index++) {
+        // 데이터의 출력 순서는 rpy, acc, gyro, mag. 데이터 시트에 적혀 있음.
+        for (int i = 0; i < 11; i++) {
             nextComma = imuData.indexOf(',', lastComma);
-            if (nextComma == -1) break; // 더 이상 쉼표가 없으면 종료
-            data[index] = imuData.substring(lastComma, nextComma).toFloat();
+            if (nextComma == -1) return; // 파싱 중 오류 발생 시 종료
+            data[i] = imuData.substring(lastComma, nextComma).toFloat();
             lastComma = nextComma + 1;
         }
-        data[5] = imuData.substring(lastComma).toFloat();
 
-        //데이터 저장
-        roll = data[0];
-        pitch = data[1];
-        yaw = data[2];
-        accelZ = data[5]; // 마지막 값이 Z축 가속도
+        // 마지막 값 (magZ)은 쉼표 없이 줄 끝에 있으므로 따로 처리
+        data[11] = imuData.substring(lastComma).toFloat();
+
+        // 데이터 분리. 데이터 시트에 명신된 데이터 출력 순서임.
+        roll    = data[0];
+        pitch   = data[1];
+        yaw     = data[2];
+
+        gyroX  = data[3];
+        gyroY  = data[4];
+        gyroZ  = data[5];
+
+        accelX  = data[6];
+        accelY  = data[7];
+        accelZ  = data[8];
+
+        magX    = data[9];
+        magY    = data[10];
+        magZ    = data[11];
     }
 }
+
 
 void EBIMU_AHRS::printData() {
     Serial.print("Roll: "); Serial.print(roll);
     Serial.print(" | Pitch: "); Serial.print(pitch);
     Serial.print(" | Yaw: "); Serial.print(yaw);
-    Serial.print(" | AccelZ: "); Serial.println(accelZ);
+    Serial.print(" | AccelX: "); Serial.print(accelX);
+    Serial.print(" | AccelY: "); Serial.print(accelY);
+    Serial.print(" | AccelZ: "); Serial.print(accelZ);
+    Serial.print(" | GyroX: "); Serial.print(gyroX);
+    Serial.print(" | GyroY: "); Serial.print(gyroY);
+    Serial.print(" | GyroZ: "); Serial.print(gyroZ);
+    Serial.print(" | MagX: "); Serial.print(magX);
+    Serial.print(" | MagY: "); Serial.print(magY);
+    Serial.print(" | MagZ: "); Serial.println(magZ);
 }
 
 void EBIMU_AHRS::getRPY(float &r, float &p, float &y) {
@@ -73,23 +97,21 @@ void EBIMU_AHRS::getRPY(float &r, float &p, float &y) {
     y = yaw;
 }
 
-float EBIMU_AHRS::getRoll() {
-    return roll;
+void EBIMU_AHRS::getAccelGyroMagFloat(float* accel, float* gyro, float* mag) {
+    accel[0] = accelX;
+    accel[1] = accelY;
+    accel[2] = accelZ;
+
+    gyro[0] = gyroX;
+    gyro[1] = gyroY;
+    gyro[2] = gyroZ;
+
+    mag[0] = magX;
+    mag[1] = magY;
+    mag[2] = magZ;
 }
 
-float EBIMU_AHRS::getPitch() {
-    return pitch;
-}
-
-float EBIMU_AHRS::getYaw() {
-    return yaw;
-}
-
-float EBIMU_AHRS::getAccelZ() {
-    return accelZ;
-}
-
-//주의! 캘리브레이션은 아직 완성도가 낮기에 사용에 주의가 필요함.
+// 주의! 캘리브레이션은 아직 완성도가 낮기에 사용에 주의가 필요함.
 // 자이로 캘리브레이션
 void EBIMU_AHRS::calibrateGyro() {
     Serial.println("Calibrating Gyro...");

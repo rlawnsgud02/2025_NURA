@@ -14,6 +14,7 @@
 
 // Debuging pins
 #define threadPin1 2 // 스레드 확인용 디버깅 핀. LED를 연결하여 깜빡이도록 구현 가능. D2에 해당
+#define safeyPin 3
 
 // 객체 생성
 // UbxGPS gps(GPS_RX, GPS_TX); // GPS는 SoftwareSerial 사용
@@ -24,11 +25,10 @@ EBIMU_AHRS imu(Serial2, IMU_RX, IMU_TX);
 GpsData gpsdata; // GPS 데이터 저장할 구조체 변수
 
 // 변수 선언
-float acc[3], gyro[3], mag[3], baro[3];
-float roll, pitch, yaw; // AHRS의 Roll, Pitch, Yaw
-float accelZ; // Z축 가속도
+float acc[3], gyro[3], mag[3], RPY[3], baro[3];
 float maxG = 0; // 발사 직후의 최대 G값
 
+bool isLaunched = false;
 bool threadFlag1 = false; // 스레드 시작을 알리는 플래그
 
 void setup()
@@ -66,18 +66,16 @@ void loop()
 
     // AHRS 데이터 업데이트
     imu.parseData();
-    roll = imu.getRoll(); // Roll 업데이트
-    pitch = imu.getPitch(); // Pitch 업데이트
-    yaw = imu.getYaw(); // Yaw 업데이트
-    accelZ = imu.getAccelZ(); // Z축 가속도 업데이트
-    maxG = max(maxG, accelZ);
+    imu.getRPY(roll, pitch, yaw);
+    imu.getAccelGyroMagFloat(acc, gyro, mag);
+    maxG = max(maxG, acc[2]);
 
     gps.get_gps_data(gpsdata); // GPS 데이터 업데이트. gpsdata에 구조체로 저장
 
 
-    // // 디버깅용 print
-    // // imu.printData();
-    // // Serial.print("Max G: "); Serial.println(maxG); // 최대 G값 출력
-    gps.printGps(); // GPS 데이터 출력
+    // 디버깅용 print
+    imu.printData();
+    Serial.print("Max G: "); Serial.println(maxG); // 최대 G값 출력
+    // gps.printGps(); // GPS 데이터 출력
     
 }

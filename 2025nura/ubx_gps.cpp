@@ -1,7 +1,7 @@
 #include "ubx_gps.h"
 
 // Ublox M9N을 이용하여 UBX-NAV-PVT 데이터를 받는 클래스
-// Last update: 2025.03.19
+// Last update: 2025.03.24
 
 UbxGPS::UbxGPS(SoftwareSerial& serial)
     : GPSserial(serial), new_update_flag(false) {}
