@@ -3,12 +3,15 @@
 
 #include "EBIMU_AHRS.h"
 #include "ubx_gps.h"
+#include "BMP390L.h"
 
 // 핀 설정
 #define GPS_TX 11 // GPS TX핀 11번
 #define GPS_RX 12 // GPS RX핀 12번
 #define IMU_TX 9 // IMU TX핀 9번
 #define IMU_RX 10 // IMU RX핀 10번
+#define BARO_SDA A0
+#define BARO_SCL A1
 #define RF_TX 7 // RF TX핀 7번
 #define RF_RX 8 // RF RX핀 8번
 
@@ -21,6 +24,7 @@
 SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
 UbxGPS gps(gpsSerial);
 EBIMU_AHRS imu(Serial2, IMU_RX, IMU_TX);
+BMP390L Baro;
 
 GpsData gpsdata; // GPS 데이터 저장할 구조체 변수
 
@@ -38,12 +42,14 @@ void setup()
     Serial.println("-----| Serial Ready! |-----"); 
 
     // 센서 초기화
-    imu.initialize();
+    // imu.initialize();
 
-    gpsSerial.begin(19200);
-    delay(2000);
-    gps.initialize();        // initialize 안에서 9600bps로 PRT 설정 전송
+    // gpsSerial.begin(19200);
+    // delay(2000);
+    // gps.initialize();        // initialize 안에서 9600bps로 PRT 설정 전송
     
+    Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
+
     // 디버깅 핀 설정
     // pinMode(threadPin1, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
@@ -65,17 +71,26 @@ void loop()
     }
 
     // AHRS 데이터 업데이트
-    imu.parseData();
-    imu.getRPY(roll, pitch, yaw);
-    imu.getAccelGyroMagFloat(acc, gyro, mag);
-    maxG = max(maxG, acc[2]);
+    // imu.parseData();
+    // imu.getRPY(RPY[0], RPY[1], RPY[2]);
+    // imu.getAccelGyroMagFloat(acc, gyro, mag);
+    // maxG = max(maxG, acc[2]);
 
-    gps.get_gps_data(gpsdata); // GPS 데이터 업데이트. gpsdata에 구조체로 저장
+    // GPS 데이터 업데이트
+    // gps.get_gps_data(gpsdata); // GPS 데이터 업데이트. gpsdata에 구조체로 저장
+
+    // 기압계 데이터 업데이트
+    Baro.performReading(); 
+    Baro.getTempPressAlt(baro[0], baro[1], baro[2]);
+
 
 
     // 디버깅용 print
-    imu.printData();
-    Serial.print("Max G: "); Serial.println(maxG); // 최대 G값 출력
+    // imu.printData();
+    // Serial.print("Max G: "); Serial.println(maxG); // 최대 G값 출력
     // gps.printGps(); // GPS 데이터 출력
+    Serial.print("Baro Temp: "); Serial.print(baro[0]); Serial.print(" C, ");
+    Serial.print("Baro Press: "); Serial.print(baro[1]); Serial.print(" hPa, ");
+    Serial.print("Baro Alt: "); Serial.print(baro[2]); Serial.println(" m");
     
 }

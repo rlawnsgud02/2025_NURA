@@ -15,12 +15,19 @@ BMP390L::BMP390L() {
     AltitudeBias = 0.0f;
 }
 
-bool BMP390L::begin_I2C(uint8_t addr, TwoWire *theWire) {
+bool BMP390L::begin_I2C(uint8_t addr, int SDA, int SCL) {
     if (i2c_dev) {
         delete i2c_dev;
     }
 
-    g_i2c_dev = i2c_dev = new Adafruit_I2CDevice(addr, theWire);
+    // Wire 포인터를 로컬에서 새로 선언 (기본은 Wire)
+    TwoWire *wire = &Wire;
+
+    if (SDA >= 0 && SCL >= 0) {
+        wire->begin(SDA, SCL);
+    }
+
+    g_i2c_dev = i2c_dev = new Adafruit_I2CDevice(addr, wire);
 
     if (!i2c_dev->begin()) {
         return false;
@@ -35,6 +42,7 @@ bool BMP390L::begin_I2C(uint8_t addr, TwoWire *theWire) {
 
     return _init();
 }
+
 
 bool BMP390L::_init() {
     g_i2c_dev = i2c_dev;
@@ -290,4 +298,11 @@ bool BMP390L::set_AltitudeBias() {
 
 float BMP390L::readAltitudeBias() {
     return AltitudeBias;
+}
+
+void BMP390L::getTempPressAlt(float &temp, float &press, float &altitude)
+{
+    temp = readTemperature();
+    press = readPressure();
+    altitude = readAltitude(1);
 }

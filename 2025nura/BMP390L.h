@@ -2,7 +2,8 @@
 #define BMP390L_H
 
 #include "bmp3.h"
-#include <Adafruit_I2CDevice.h>
+#include "Adafruit_I2CDevice.h"
+
 
 #define BMP3XX_DEFAULT_ADDRESS (0x77) ///< The default I2C address
 
@@ -31,7 +32,7 @@ public:
  
     BMP390L();
     
-    bool begin_I2C(uint8_t addr = BMP3XX_DEFAULT_ADDRESS, TwoWire *theWire = &Wire);
+    bool begin_I2C(uint8_t addr = BMP3XX_DEFAULT_ADDRESS, int SDA = -1, int SCL = -1);
 
     bool setTemperatureOversampling(uint8_t os);
     bool setPressureOversampling(uint8_t os);
@@ -47,6 +48,8 @@ public:
     void set_Altitude(float seaLevel);
 
     bool set_AltitudeBias();
+    void getTempPressAlt(float &temp, float &press, float &altitude);
+
 
 };
 
