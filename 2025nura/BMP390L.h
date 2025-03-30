@@ -2,15 +2,14 @@
 #define BMP390L_H
 
 #include "bmp3.h"
-#include "Adafruit_I2CDevice.h"
-
+#include "baro_I2C.h"
 
 #define BMP3XX_DEFAULT_ADDRESS (0x77) ///< The default I2C address
 
 class BMP390L {
 private:
 
-    Adafruit_I2CDevice *i2c_dev = NULL; ///< Pointer to I2C bus interface
+    I2C *i2c_dev = NULL; ///< Pointer to I2C bus interface
 
     float Temperature;
     float Pressure;

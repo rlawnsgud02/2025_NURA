@@ -1,7 +1,9 @@
+// BMP390L made by 김랑현
+
 #include "BMP390L.h"
 #include "Arduino.h"
 
-Adafruit_I2CDevice *g_i2c_dev = NULL; ///< Global I2C interface pointer
+I2C *g_i2c_dev = NULL; ///< Global I2C interface pointer
 
 static int8_t i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t len, void *intf_ptr);
 static int8_t i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *intf_ptr);
@@ -27,7 +29,7 @@ bool BMP390L::begin_I2C(uint8_t addr, int SDA, int SCL) {
         wire->begin(SDA, SCL);
     }
 
-    g_i2c_dev = i2c_dev = new Adafruit_I2CDevice(addr, wire);
+    g_i2c_dev = i2c_dev = new I2C(addr, wire);
 
     if (!i2c_dev->begin()) {
         return false;
@@ -45,6 +47,7 @@ bool BMP390L::begin_I2C(uint8_t addr, int SDA, int SCL) {
 
 
 bool BMP390L::_init() {
+    Serial.println("\n-----| BMP390L Initializing... |-----\n");
     g_i2c_dev = i2c_dev;
     the_sensor.delay_us = delay_usec;
     int8_t rslt = BMP3_OK;
@@ -63,11 +66,13 @@ bool BMP390L::_init() {
         return false;
     }
 
-    setTemperatureOversampling(BMP3_NO_OVERSAMPLING);
-    setPressureOversampling(BMP3_NO_OVERSAMPLING);
-    setIIRFilterCoeff(BMP3_IIR_FILTER_DISABLE);
-    setOutputDataRate(BMP3_ODR_25_HZ);
+    setTemperatureOversampling(BMP3_OVERSAMPLING_16X);
+    setPressureOversampling(BMP3_OVERSAMPLING_16X);
+    setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
+    setOutputDataRate(BMP3_ODR_100_HZ);
     the_sensor.settings.op_mode = BMP3_MODE_FORCED;
+
+    set_AltitudeBias();
 
     return true;
 }
@@ -239,7 +244,7 @@ float BMP390L::readPressure() {
 }
 
 void BMP390L::set_Altitude(float seaLevel) {
-    float atmospheric = Pressure/100.0F;
+    float atmospheric = Pressure/100.0F; // Convert to hPa
     Altitude = 44330 * (1.0 - powf(atmospheric / seaLevel, 0.1903));    
 }
 
@@ -277,7 +282,7 @@ static void delay_usec(uint32_t us, void *intf_ptr) {
 
 bool BMP390L::set_AltitudeBias() {
     int count = 0;
-    Serial.println("Setting Altitude Bias");
+    Serial.println("\n-----| Setting Altitude Bias |-----\n");
     
     for (int i = 0; i < 1000; i++) {
         if (performReading()) {
@@ -291,8 +296,10 @@ bool BMP390L::set_AltitudeBias() {
     if (count > 0) {
         AltitudeBias /= count;
         return true;
+        Serial.println("\n-----| Setting Altitude Bias Done! |-----\n");
     }
 
+    Serial.println("-----| Setting Altitude Bias Failed |-----");
     return false;
 }
 
@@ -303,6 +310,6 @@ float BMP390L::readAltitudeBias() {
 void BMP390L::getTempPressAlt(float &temp, float &press, float &altitude)
 {
     temp = readTemperature();
-    press = readPressure();
+    press = readPressure()/100.0F;
     altitude = readAltitude(1);
 }
