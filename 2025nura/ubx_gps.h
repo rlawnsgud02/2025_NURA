@@ -79,6 +79,7 @@ private:
     void parse_PVT(char *packet);
     void parse_POSLLH(char *packet);
     int byte_to_int(const char *ptr, int len); 
+    char byte;
 
 public:
     UbxGPS(SoftwareSerial& serial);

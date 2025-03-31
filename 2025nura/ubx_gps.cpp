@@ -30,7 +30,7 @@ bool UbxGPS::get_gps_data(GpsData &data) { // GPS 데이터를 업데이트하�
     // if (!GPSserial.available()) return false;  // UBX-PVT는 100바이트
 
     while (GPSserial.available()) {
-        char byte = GPSserial.read();
+        byte = GPSserial.read();
         decode(byte);
         if (new_update_flag) {
             new_update_flag = false;

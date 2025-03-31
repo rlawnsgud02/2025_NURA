@@ -10,6 +10,8 @@
         "initializer_list": "cpp",
         "span": "cpp",
         "text_encoding": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "*.tcc": "cpp",
+        "streambuf": "cpp"
     }
 }

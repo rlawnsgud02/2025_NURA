@@ -4,16 +4,18 @@
 #include "EBIMU_AHRS.h"
 #include "ubx_gps.h"
 #include "BMP390L.h"
+#include "SDCard.h"
 
 // 핀 설정
-#define GPS_TX 11 // GPS TX핀 11번
-#define GPS_RX 12 // GPS RX핀 12번
-#define IMU_TX 9 // IMU TX핀 9번
-#define IMU_RX 10 // IMU RX핀 10번
+#define GPS_TX 6 // GPS TX핀 11번
+#define GPS_RX 7 // GPS RX핀 12번
+#define IMU_TX 8 // IMU TX핀 9번
+#define IMU_RX 9 // IMU RX핀 10번
 #define BARO_SDA A0
 #define BARO_SCL A1
-#define RF_TX 7 // RF TX핀 7번
-#define RF_RX 8 // RF RX핀 8번
+#define RF_TX 4 // RF TX핀 7번
+#define RF_RX 5 // RF RX핀 8번
+#define CS_PIN 10
 
 // Debuging pins
 #define threadPin1 2 // 스레드 확인용 디버깅 핀. LED를 연결하여 깜빡이도록 구현 가능. D2에 해당
@@ -24,6 +26,7 @@ SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
 UbxGPS gps(gpsSerial);
 EBIMU_AHRS imu(Serial2, IMU_RX, IMU_TX);
 BMP390L Baro;
+SDLogger sd(CS_PIN);
 
 GpsData gpsdata; // GPS 데이터 저장할 구조체 변수
 
@@ -48,6 +51,8 @@ void setup()
     gps.initialize();        // initialize 안에서 9600bps로 PRT 설정 전송
     
     Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
+
+    sd.initialize(); 
 
     // 디버깅 핀 설정
     // pinMode(threadPin1, OUTPUT);
@@ -76,7 +81,7 @@ void loop()
         imu.parseData();
         imu.getRPY(RPY[0], RPY[1], RPY[2]);
         imu.getAccelGyroMagFloat(acc, gyro, mag);
-        maxG = max(maxG, acc[2]);
+        // maxG = max(maxG, acc[2]);
     }
 
     // GPS 데이터 업데이트
