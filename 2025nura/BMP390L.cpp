@@ -295,8 +295,8 @@ bool BMP390L::set_AltitudeBias() {
     }
     if (count > 0) {
         AltitudeBias /= count;
-        return true;
         Serial.println("\n-----| Setting Altitude Bias Done! |-----\n");
+        return true;
     }
 
     Serial.println("-----| Setting Altitude Bias Failed |-----");
@@ -312,4 +312,10 @@ void BMP390L::getTempPressAlt(float &temp, float &press, float &altitude)
     temp = readTemperature();
     press = readPressure()/100.0F;
     altitude = readAltitude(1);
+}
+
+
+bool BMP390L::isDataReady() {
+    bmp3_get_status(&the_sensor);  // the_sensor는 bmp3_dev 객체
+    return (the_sensor.status.sensor.drdy_press && the_sensor.status.sensor.drdy_temp);
 }

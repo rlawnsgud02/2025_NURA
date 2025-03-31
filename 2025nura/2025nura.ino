@@ -20,7 +20,6 @@
 #define safeyPin 3
 
 // 객체 생성
-// UbxGPS gps(GPS_RX, GPS_TX); // GPS는 SoftwareSerial 사용
 SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
 UbxGPS gps(gpsSerial);
 EBIMU_AHRS imu(Serial2, IMU_RX, IMU_TX);
@@ -42,17 +41,19 @@ void setup()
     Serial.println("-----| Serial Ready! |-----"); 
 
     // 센서 초기화
-    // imu.initialize();
+    imu.initialize();
 
-    // gpsSerial.begin(19200);
-    // delay(2000);
-    // gps.initialize();        // initialize 안에서 9600bps로 PRT 설정 전송
+    gpsSerial.begin(19200);
+    delay(2000);
+    gps.initialize();        // initialize 안에서 9600bps로 PRT 설정 전송
     
     Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
 
     // 디버깅 핀 설정
     // pinMode(threadPin1, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
+
+    Serial.println("-----| START! |-----");
 }
 
 void loop()
@@ -71,26 +72,32 @@ void loop()
     }
 
     // AHRS 데이터 업데이트
-    // imu.parseData();
-    // imu.getRPY(RPY[0], RPY[1], RPY[2]);
-    // imu.getAccelGyroMagFloat(acc, gyro, mag);
-    // maxG = max(maxG, acc[2]);
+    if(Serial2.available()) {
+        imu.parseData();
+        imu.getRPY(RPY[0], RPY[1], RPY[2]);
+        imu.getAccelGyroMagFloat(acc, gyro, mag);
+        maxG = max(maxG, acc[2]);
+    }
 
     // GPS 데이터 업데이트
-    // gps.get_gps_data(gpsdata); // GPS 데이터 업데이트. gpsdata에 구조체로 저장
+    if(gpsSerial.available()) {
+      gps.get_gps_data(gpsdata); // GPS 데이터 업데이트. gpsdata에 구조체로 저장
+    }
 
     // 기압계 데이터 업데이트
-    Baro.performReading(); 
-    Baro.getTempPressAlt(baro[0], baro[1], baro[2]);
-
-
+    if (Baro.isDataReady()) {
+        if (Baro.performReading()) {
+            Baro.getTempPressAlt(baro[0], baro[1], baro[2]);
+        }
+    }
+    
 
     // 디버깅용 print
     // imu.printData();
     // Serial.print("Max G: "); Serial.println(maxG); // 최대 G값 출력
     // gps.printGps(); // GPS 데이터 출력
-    Serial.print("Baro Temp: "); Serial.print(baro[0]); Serial.print(" C, ");
-    Serial.print("Baro Press: "); Serial.print(baro[1]); Serial.print(" hPa, ");
-    Serial.print("Baro Alt: "); Serial.print(baro[2]); Serial.println(" m");
-    
+    // Serial.print("Baro Temp: "); Serial.print(baro[0]); Serial.print(" C, ");
+    // Serial.print("Baro Press: "); Serial.print(baro[1]); Serial.print(" hPa, ");
+    // Serial.print("Baro Alt: "); Serial.print(baro[2]); Serial.println(" m");
+    // delay(500);
 }

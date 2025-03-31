@@ -24,14 +24,22 @@ void UbxGPS::initialize() {
 }
 
 bool UbxGPS::get_gps_data(GpsData &data) { // GPS 데이터를 업데이트하고 인자로 받은 변수에 구조체로 저장한다.   
-    if(!GPSserial.available()) return false; // 데이터가 없는 경우 false 반환하고 바로 종료
+    bool packetReceived = false;
 
-    while(GPSserial.available()) { // 데이터가 존재할 경우 1 바이트씩 decoding을 진행한다.
+    // if (GPSserial.available() < 100) return false;  // UBX-PVT는 100바이트
+    // if (!GPSserial.available()) return false;  // UBX-PVT는 100바이트
+
+    while (GPSserial.available()) {
         char byte = GPSserial.read();
         decode(byte);
+        if (new_update_flag) {
+            new_update_flag = false;
+            data = gps;
+            packetReceived = true;
+        }
     }
-    data = gps;
-    return true;
+
+    return packetReceived;
 }
 
 bool UbxGPS::is_updated() {

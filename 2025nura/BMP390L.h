@@ -48,6 +48,7 @@ public:
 
     bool set_AltitudeBias();
     void getTempPressAlt(float &temp, float &press, float &altitude);
+    bool isDataReady();
 
 
 };
