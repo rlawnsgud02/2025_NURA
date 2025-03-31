@@ -7,7 +7,7 @@
 /* Packet Structure
 / HEADER1 / HEADER2 / Type / Payload Length / ... Data ... / Chksum /
 */
-
+ 
 class Packet
 {
 private:

@@ -7,7 +7,7 @@ SDLogger::~SDLogger() {
         fp.close();
     }
 }
-
+ 
 int SDLogger::initialize() {
     if (!SD.begin(cs_pin)) {
         Serial.println("SD 카드 초기화 실패!");

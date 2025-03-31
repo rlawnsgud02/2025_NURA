@@ -9,7 +9,7 @@ private:
     int cs_pin;
     char file_name[20];
     File fp;
-
+ 
 public:
     SDLogger(int cs);
     ~SDLogger();
