@@ -20,13 +20,14 @@ public:
     ~SDLogger();
 
     int initialize();
-
     void show_file_list();
     int create_new_data_file();
-
-    int write_data(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float * baro, GpsData &gps, int eject);
-    void save_data_file(); // 완료 후 파일 저장 외에도 중간 저장 가능
+    int write_data(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, GpsData &gps, int eject);
+    void save_data_file(); // 완료 후 파일 저장 외에도 중간 저장 기능
     int open_data_file(); // 중간 저장 시 사용
+    bool isInit();
+
+    bool init;
 };
 
 #endif // SDLOGGER_H

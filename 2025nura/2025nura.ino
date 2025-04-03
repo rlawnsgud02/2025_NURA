@@ -1,5 +1,5 @@
 ///////////////////2025 NURA AHRS & Wireless Communication/////////////////////
-// Last update: 2025.03.20
+// Last update: 2025.04.03
 
 #include "EBIMU_AHRS.h"
 #include "ubx_gps.h"
@@ -33,9 +33,14 @@ GpsData gpsdata; // GPS 데이터 저장할 구조체 변수
 // 변수 선언
 float acc[3], gyro[3], mag[3], RPY[3], baro[3];
 float maxG = 0; // 발사 직후의 최대 G값
+int chute_eject = 0; // 낙하산 사출 여부
 
-bool isLaunched = false;
+static uint32_t timeStamp = 0;
+static uint32_t Timer = 0;
+
 bool threadFlag1 = false; // 스레드 시작을 알리는 플래그
+bool isLaunched = false;
+
 
 void setup()
 {
@@ -47,18 +52,23 @@ void setup()
     imu.initialize();
 
     gpsSerial.begin(19200);
-    delay(2000);
-    gps.initialize();        // initialize 안에서 9600bps로 PRT 설정 전송
+    delay(1000);
+    gps.initialize();
+    delay(500);
     
     Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
+    delay(500);
 
-    sd.initialize(); 
+    sd.initialize();
+    while(!sd.isInit()); //SD 초기화 대기
 
     // 디버깅 핀 설정
     // pinMode(threadPin1, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(safeyPin, INPUT);
 
     Serial.println("-----| START! |-----");
+    Timer = millis(); // 타이머 시작
 }
 
 void loop()
@@ -76,26 +86,27 @@ void loop()
         threadFlag1 = false;
     }
 
-    // AHRS 데이터 업데이트
+    timeStamp = millis() - Timer;
+
+    // 센서 데이터 업데이트
     if(Serial2.available()) {
         imu.parseData();
         imu.getRPY(RPY[0], RPY[1], RPY[2]);
         imu.getAccelGyroMagFloat(acc, gyro, mag);
-        // maxG = max(maxG, acc[2]);
+        // maxG = max(maxG, acc[2]); // acc 값이 한 번씩 튀는 문제 발생 중...
     }
 
-    // GPS 데이터 업데이트
     if(gpsSerial.available()) {
-      gps.get_gps_data(gpsdata); // GPS 데이터 업데이트. gpsdata에 구조체로 저장
+      gps.get_gps_data(gpsdata); // gpsdata에 구조체에 데이터 저장
     }
 
-    // 기압계 데이터 업데이트
     if (Baro.isDataReady()) {
         if (Baro.performReading()) {
             Baro.getTempPressAlt(baro[0], baro[1], baro[2]);
         }
     }
-    
+
+    sd.write_data(timeStamp, acc, gyro, mag, RPY, maxG, baro, gpsdata, chute_eject);
 
     // 디버깅용 print
     // imu.printData();

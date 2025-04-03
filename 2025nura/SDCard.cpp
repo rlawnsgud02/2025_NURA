@@ -1,7 +1,7 @@
 #include "SDCard.h"
 
 SDLogger::SDLogger(int cs)
-    : CS_pin(cs), fp(nullptr), file_num(0) {}
+    : CS_pin(cs), fp(nullptr), file_num(0), init(false) {}
 
 SDLogger::~SDLogger() {
     if (fp) {
@@ -39,6 +39,8 @@ void SDLogger::show_file_list() {
 }
 
 int SDLogger::create_new_data_file() {
+    Serial.println("-----| Creating New File |-----");
+
     file_num = 1;
     sprintf(file_name, "/output_%03d.csv", file_num);
 
@@ -54,17 +56,18 @@ int SDLogger::create_new_data_file() {
     }
 
     fp->println("[Data]");
-    fp->println("time,ax,ay,az,gx,gy,gz,mx,my,mz,roll,pitch,yaw,T,P,P_alt,fix,lon,lat,alt,vn,ve,vd,eject");
+    fp->println("time,ax,ay,az,gx,gy,gz,mx,my,mz,roll,pitch,yaw,maxG,T,P,P_alt,fix,lon,lat,alt,vn,ve,vd,eject");
     fp->close();
     delete fp;
     fp = nullptr;
 
-    Serial.print("새로운 데이터 파일 생성: ");
-    Serial.println(file_name);
+    init = true;
+
+    Serial.print("-----| New File Created : "); Serial.print(file_name); Serial.println(" |-----")
     return 1;
 }
 
-int SDLogger::write_data(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float * baro, GpsData &gps, int eject) {
+int SDLogger::write_data(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, GpsData &gps, int eject) {
     fp = new File(SD.open(file_name, FILE_WRITE));
     if (!fp || !(*fp)) {
         Serial.println("파일 열기 실패!");
@@ -78,6 +81,8 @@ int SDLogger::write_data(int32_t timestamp, float * acc, float * gyro, float * m
     for (int i = 0; i < 3; i++) { fp->print(gyro[i]); fp->print(","); }
     for (int i = 0; i < 3; i++) { fp->print(mag[i]); fp->print(","); }
     for (int i = 0; i < 3; i++) { fp->print(euler[i]); fp->print(","); }
+    fp->print(maxG); fp->print(",");
+
     for (int i = 0; i < 3; i++) { fp->print(baro[i]); fp->print(","); }
 
     // GPS
@@ -115,4 +120,8 @@ int SDLogger::open_data_file() {
         return -1;
     }
     return 1;
+}
+
+bool SDLogger::isInit() {
+    return init;
 }
