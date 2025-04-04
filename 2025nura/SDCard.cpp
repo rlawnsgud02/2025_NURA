@@ -1,12 +1,13 @@
 #include "SDCard.h"
 
 SDLogger::SDLogger(int cs)
-    : CS_pin(cs), fp(nullptr), file_num(0), init(false) {}
+    : CS_pin(cs), fp(nullptr), file_num(1), init(false) {}
 
 SDLogger::~SDLogger() {
     if (fp) {
         fp->close();
         delete fp;
+        fp = nullptr;
     }
 }
 
@@ -41,7 +42,6 @@ void SDLogger::show_file_list() {
 int SDLogger::create_new_data_file() {
     Serial.println("-----| Creating New File |-----");
 
-    file_num = 1;
     sprintf(file_name, "/output_%03d.csv", file_num);
 
     while (SD.exists(file_name)) {
@@ -63,11 +63,54 @@ int SDLogger::create_new_data_file() {
 
     init = true;
 
-    Serial.print("-----| New File Created : "); Serial.print(file_name); Serial.println(" |-----")
+    Serial.print("-----| New File Created : "); Serial.print(file_name); Serial.println(" |-----");
+
+    if (SD.exists(file_name)) {
+    Serial.println("파일 생성 후 바로 확인: 존재함!");
+    }
+
+    delay(500);
+
     return 1;
 }
 
 int SDLogger::write_data(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, GpsData &gps, int eject) {
+    Serial.print("현재 file_name: ");
+    Serial.println(file_name);
+
+    // File dataFile = SD.open(file_name, FILE_WRITE);
+    // if (!dataFile) {
+    //     Serial.println("파일 열기 실패!");
+    //     return -1;
+    // }
+
+    // dataFile.print(timestamp);
+    // dataFile.print(",");
+
+    // for (int i = 0; i < 3; i++) { dataFile.print(acc[i]); dataFile.print(","); }
+    // for (int i = 0; i < 3; i++) { dataFile.print(gyro[i]); dataFile.print(","); }
+    // for (int i = 0; i < 3; i++) { dataFile.print(mag[i]); dataFile.print(","); }
+    // for (int i = 0; i < 3; i++) { dataFile.print(euler[i]); dataFile.print(","); }
+    // dataFile.print(maxG); dataFile.print(",");
+
+    // for (int i = 0; i < 3; i++) { dataFile.print(baro[i]); dataFile.print(","); }
+
+    // // GPS
+    // dataFile.print(gps.fixType); dataFile.print(",");
+    // dataFile.print(gps.lon, 7); dataFile.print(",");
+    // dataFile.print(gps.lat, 7); dataFile.print(",");
+    // dataFile.print(gps.height); dataFile.print(",");
+    // dataFile.print(gps.velN); dataFile.print(",");
+    // dataFile.print(gps.velE); dataFile.print(",");
+    // dataFile.print(gps.velD); dataFile.print(",");
+
+    // // Eject 상태
+    // dataFile.println(eject);
+
+    // dataFile.close();
+
+    // return 1;
+
     fp = new File(SD.open(file_name, FILE_WRITE));
     if (!fp || !(*fp)) {
         Serial.println("파일 열기 실패!");
@@ -124,4 +167,8 @@ int SDLogger::open_data_file() {
 
 bool SDLogger::isInit() {
     return init;
+}
+
+const char* SDLogger::getFileName() {
+    return file_name;
 }

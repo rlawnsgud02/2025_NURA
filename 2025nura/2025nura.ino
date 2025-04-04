@@ -5,6 +5,8 @@
 #include "ubx_gps.h"
 #include "BMP390L.h"
 #include "SDCard.h"
+#include "SPI.h"
+#include "SDLogger.h"
 
 // 핀 설정
 #define GPS_TX 6 // GPS TX핀 11번
@@ -26,7 +28,8 @@ SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
 UbxGPS gps(gpsSerial);
 EBIMU_AHRS imu(Serial2, IMU_RX, IMU_TX);
 BMP390L Baro;
-SDLogger sd(CS_PIN);
+// SDLogger sd(CS_PIN);
+SDFatLogger sd(CS_PIN); 
 
 GpsData gpsdata; // GPS 데이터 저장할 구조체 변수
 
@@ -48,6 +51,8 @@ void setup()
     while (!Serial); // Serial 초기화 대기
     Serial.println("-----| Serial Ready! |-----"); 
 
+    sd.initialize();
+
     // 센서 초기화
     imu.initialize();
 
@@ -58,10 +63,7 @@ void setup()
     
     Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
     delay(500);
-
-    sd.initialize();
-    while(!sd.isInit()); //SD 초기화 대기
-
+    
     // 디버깅 핀 설정
     // pinMode(threadPin1, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
@@ -107,6 +109,8 @@ void loop()
     }
 
     sd.write_data(timeStamp, acc, gyro, mag, RPY, maxG, baro, gpsdata, chute_eject);
+    // Serial.print("현재 사용중인 파일 이름: ");
+    // Serial.println(sd.getFileName());
 
     // 디버깅용 print
     // imu.printData();

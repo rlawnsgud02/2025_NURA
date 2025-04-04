@@ -26,8 +26,10 @@ public:
     void save_data_file(); // 완료 후 파일 저장 외에도 중간 저장 기능
     int open_data_file(); // 중간 저장 시 사용
     bool isInit();
+    const char* getFileName();
 
     bool init;
+
 };
 
 #endif // SDLOGGER_H
