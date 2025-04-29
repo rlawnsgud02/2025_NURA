@@ -3,9 +3,7 @@
 
 #include "EBIMU_AHRS.h"
 #include "ubx_gps.h"
-#include "BMP390L.h"
-#include "SDCard.h"
-#include "SPI.h"
+// #include "BMP390L.h"
 #include "SDLogger.h"
 
 // 핀 설정
@@ -27,8 +25,7 @@
 SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
 UbxGPS gps(gpsSerial);
 EBIMU_AHRS imu(Serial2, IMU_RX, IMU_TX);
-BMP390L Baro;
-// SDLogger sd(CS_PIN);
+// BMP390L Baro;
 SDFatLogger sd(CS_PIN); 
 
 GpsData gpsdata; // GPS 데이터 저장할 구조체 변수
@@ -43,6 +40,8 @@ static uint32_t Timer = 0;
 
 bool threadFlag1 = false; // 스레드 시작을 알리는 플래그
 bool isLaunched = false;
+
+float bae[3] ={1.1, 1.1, 1.1};
 
 
 void setup()
@@ -61,16 +60,18 @@ void setup()
     gps.initialize();
     delay(500);
     
-    Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
-    delay(500);
+    // Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
+    // delay(500);
     
     // 디버깅 핀 설정
-    // pinMode(threadPin1, OUTPUT);
+    pinMode(threadPin1, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(safeyPin, INPUT);
 
     Serial.println("-----| START! |-----");
     Timer = millis(); // 타이머 시작
+    sd.openFile();    
+
 }
 
 void loop()
@@ -95,22 +96,33 @@ void loop()
         imu.parseData();
         imu.getRPY(RPY[0], RPY[1], RPY[2]);
         imu.getAccelGyroMagFloat(acc, gyro, mag);
-        // maxG = max(maxG, acc[2]); // acc 값이 한 번씩 튀는 문제 발생 중...
+        maxG = max(maxG, acc[2]); // acc 값이 한 번씩 튀는 문제 발생 중...
     }
-
+    
+    
     if(gpsSerial.available()) {
-      gps.get_gps_data(gpsdata); // gpsdata에 구조체에 데이터 저장
+        gps.get_gps_data(gpsdata); // gpsdata에 구조체에 데이터 저장
     }
 
-    if (Baro.isDataReady()) {
-        if (Baro.performReading()) {
-            Baro.getTempPressAlt(baro[0], baro[1], baro[2]);
-        }
-    }
 
-    sd.write_data(timeStamp, acc, gyro, mag, RPY, maxG, baro, gpsdata, chute_eject);
-    // Serial.print("현재 사용중인 파일 이름: ");
-    // Serial.println(sd.getFileName());
+    // if (Baro.isDataReady()) {
+    //     if (Baro.performReading()) {
+    //         Baro.getTempPressAlt(baro[0], baro[1], baro[2]);
+    //     }
+    // }
+
+
+    sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, bae, gpsdata, chute_eject);
+    // sd.setData(timeStamp, bae, bae, bae, bae, 1.1, bae, gpsdata, chute_eject);
+    // sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, 1);
+    sd.print();
+    sd.write_data();
+    // sd.write_one_line();
+
+
+    // sd.closeFile();
+    // sd.flushFile();
+
 
     // 디버깅용 print
     // imu.printData();
