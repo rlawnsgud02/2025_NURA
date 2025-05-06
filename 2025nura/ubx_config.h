@@ -11,7 +11,7 @@
 // Set Baud Rate //
 // #define PRT_115200
 // #define PRT_38400
-#define PRT_19200
+// #define PRT_19200
 // ================//
 
 
