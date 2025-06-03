@@ -12,8 +12,20 @@ namespace DATA {
     extern float* euler;
     extern float maxG;
     extern float* baro;
+    extern GpsData gps;
     extern int eject;
 }
+
+// namespace DATA {
+//     extern int32_t timestamp;
+//     extern float* acc;
+//     extern float* gyro;
+//     extern float* mag;
+//     extern float* euler;
+//     extern float maxG;
+//     extern float* baro;
+//     extern int eject;
+// }
 
 class SDFatLogger {
 private:
@@ -36,8 +48,10 @@ public:
     bool openFile();
     bool closeFile();
     bool flushFile();
-    void setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, int eject);
+    void setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, GpsData &gps, int eject);
+    // void setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, int eject);
     void print();
+    bool write_one_line();
 };
 
 #endif // SDFATLOGGER_H

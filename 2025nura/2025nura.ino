@@ -1,5 +1,5 @@
 ///////////////////2025 NURA AHRS & Wireless Communication/////////////////////
-// Last update: 2025.05.06
+// Last update: 2025.05.19
 
 #include "EBIMU_AHRS.h"
 #include "ubx_gps.h"
@@ -7,14 +7,14 @@
 #include "SDLogger.h"
 
 // 핀 설정
-#define GPS_TX 6 // GPS TX핀 11번
-#define GPS_RX 7 // GPS RX핀 12번
-#define IMU_TX 8 // IMU TX핀 9번
-#define IMU_RX 9 // IMU RX핀 10번
+#define GPS_TX 6 // GPS TX핀
+#define GPS_RX 7 // GPS RX핀
+#define IMU_TX 8 // IMU TX핀
+#define IMU_RX 9 // IMU RX핀
 #define BARO_SDA A0
 #define BARO_SCL A1
-#define RF_TX 4 // RF TX핀 7번
-#define RF_RX 5 // RF RX핀 8번
+#define RF_TX 4 // RF TX핀
+#define RF_RX 5 // RF RX핀
 #define CS_PIN 10
 
 // Debuging pins
@@ -22,13 +22,13 @@
 #define safeyPin 3
 
 // 객체 생성
-// SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
-// UbxGPS gps(gpsSerial);
-// EBIMU_AHRS imu(Serial2, IMU_RX, IMU_TX);
-// BMP390L Baro;
+SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
+UbxGPS gps(gpsSerial);
+EBIMU_AHRS imu(Serial2, IMU_RX, IMU_TX);
+BMP390L Baro;
 SDFatLogger sd(CS_PIN); 
 
-// GpsData gpsdata; // GPS 데이터 저장할 구조체 변수
+GpsData gpsdata; // GPS 데이터 저장할 구조체 변수
 
 // 변수 선언
 float acc[3], gyro[3], mag[3], RPY[3], baro[3];
@@ -40,42 +40,42 @@ static uint32_t Timer = 0;
 
 bool threadFlag1 = false; // 스레드 시작을 알리는 플래그
 bool isLaunched = false;
-
-float bae[3] = {1.1,1.1,1.1};
-
+bool sd_init = true; // SD 카드 초기화 여부
 
 void setup()
 {
     Serial.begin(115200);
     while (!Serial); // Serial 초기화 대기
-    Serial.println("-----| Serial Ready! |-----"); 
+    Serial.println("-----| Serial Ready! |-----");
 
-    sd.initialize();
+    imu.initialize();
 
     // 센서 초기화
-    // imu.initialize();
-
-    // gpsSerial.begin(19200);
-    // delay(1000);
-    // gps.initialize();
-    // delay(500);
+    gpsSerial.begin(19200);
+    delay(1000);
+    gps.initialize();
+    delay(500);
     
-    // Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
-    // delay(500);
+    Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
+    delay(500);
     
     // 디버깅 핀 설정
     // pinMode(threadPin1, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(safeyPin, INPUT);
 
-    // sd.openFile();
-    
     Serial.println("-----| START! |-----");
     Timer = millis(); // 타이머 시작
 }
 
 void loop()
 {
+    if(sd_init)
+    {
+        sd.initialize();
+        sd_init = false;
+    }
+
     if (!threadFlag1)
     {
         // digitalWrite(threadPin1, HIGH);
@@ -92,28 +92,31 @@ void loop()
     timeStamp = millis() - Timer;
 
     // 센서 데이터 업데이트
-    // if(Serial2.available()) {
-    //     imu.parseData();
-    //     imu.getRPY(RPY[0], RPY[1], RPY[2]);
-    //     imu.getAccelGyroMagFloat(acc, gyro, mag);
-    //     // maxG = max(maxG, acc[2]); // acc 값이 한 번씩 튀는 문제 발생 중...
-    // }
+    if(Serial2.available()) {
+        imu.parseData();
+        imu.getRPY(RPY[0], RPY[1], RPY[2]);
+        imu.getAccelGyroMagFloat(acc, gyro, mag);
+        maxG = max(maxG, acc[2]); 
+    }
 
-    // if(gpsSerial.available()) {
-    //   gps.get_gps_data(gpsdata); // gpsdata에 구조체에 데이터 저장
-    // }
+    if(gpsSerial.available()) {
+      gps.get_gps_data(gpsdata); // gpsdata에 구조체에 데이터 저장
+    }
 
-    // if (Baro.isDataReady()) {
-    //     if (Baro.performReading()) {
-    //         Baro.getTempPressAlt(baro[0], baro[1], baro[2]);
-    //     }
-    // }
+    if (Baro.isDataReady()) {
+        if (Baro.performReading()) {
+            Baro.getTempPressAlt(baro[0], baro[1], baro[2]);
+        }
+    }
 
+    sd.openFile();
     // sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, chute_eject);
-    sd.setData(timeStamp, bae, bae, bae, bae, 1.1, bae, chute_eject);
-    sd.print();
-    // sd.write_data(timeStamp, acc, gyro, mag, RPY, maxG, baro, gpsdata, chute_eject);
+    sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, chute_eject);
+    // sd.setData(timeStamp, bae, bae, bae, bae, 1.1, bae, chute_eject);
+    // sd.print();
     sd.write_data();
+    sd.closeFile();
+    // delay(100);
 
     // 디버깅용 print
     // imu.printData();
