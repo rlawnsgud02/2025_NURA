@@ -1,5 +1,7 @@
-///////////////////2025 NURA AHRS & Wireless Communication/////////////////////
-// Last update: 2025.05.19
+/* ----------------------------------------
+    2025 NURA AHRS & Wireless Communication 
+    - Last update: 2025.05.19
+   ---------------------------------------- */
 
 #include "EBIMU_AHRS.h"
 #include "ubx_gps.h"
@@ -110,13 +112,11 @@ void loop()
     }
 
     sd.openFile();
-    // sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, chute_eject);
     sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, chute_eject);
+    // sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, gpsdata, chute_eject);
     // sd.setData(timeStamp, bae, bae, bae, bae, 1.1, bae, chute_eject);
-    // sd.print();
     sd.write_data();
     sd.closeFile();
-    // delay(100);
 
     // 디버깅용 print
     // imu.printData();

@@ -169,7 +169,7 @@ void UbxGPS::decode(char byte)
     
             if(packet_class == UBX_ID::NAV) 
             {
-                if(packet_id == UBX_ID::PVT) 
+                if(packet_id == UBX_ID::PVT)
                 {
                     parse_PVT(buffer);
                 }

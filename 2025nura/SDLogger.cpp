@@ -1,17 +1,5 @@
 #include "SDLogger.h"
 
-namespace DATA {
-    int32_t timestamp;
-    float* acc;
-    float* gyro;
-    float* mag;
-    float* euler;
-    float maxG;
-    float* baro;
-    GpsData gps;
-    int eject;
-}
-
 // namespace DATA {
 //     int32_t timestamp;
 //     float* acc;
@@ -20,8 +8,20 @@ namespace DATA {
 //     float* euler;
 //     float maxG;
 //     float* baro;
+//     GpsData gps;
 //     int eject;
 // }
+
+namespace DATA {
+    int32_t timestamp;
+    float* acc;
+    float* gyro;
+    float* mag;
+    float* euler;
+    float maxG;
+    float* baro;
+    int eject;
+}
 
 SDFatLogger::SDFatLogger(int cs) : CS_pin(cs), file_num(1), init(false) {
     memset(file_name, 0, sizeof(file_name));
@@ -93,22 +93,9 @@ int SDFatLogger::write_data() {
 
     char buf[256];
     // GPS 없는 버전
-    // int len = snprintf(buf, sizeof(buf),
-    //     "%ld,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
-    //     "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d\n",
-    //     DATA::timestamp,
-    //     DATA::acc[0], DATA::acc[1], DATA::acc[2],
-    //     DATA::gyro[0], DATA::gyro[1], DATA::gyro[2],
-    //     DATA::mag[0],  DATA::mag[1],  DATA::mag[2],
-    //     DATA::euler[0], DATA::euler[1], DATA::euler[2],
-    //     DATA::maxG,
-    //     DATA::baro[0], DATA::baro[1], DATA::baro[2],
-    //     DATA::eject);
-
-    // GPS 포함 버전
     int len = snprintf(buf, sizeof(buf),
         "%ld,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
-        "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.7f,%.7f,%.2f,%.2f,%.2f,%.2f,%d\n",
+        "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d\n",
         DATA::timestamp,
         DATA::acc[0], DATA::acc[1], DATA::acc[2],
         DATA::gyro[0], DATA::gyro[1], DATA::gyro[2],
@@ -116,9 +103,22 @@ int SDFatLogger::write_data() {
         DATA::euler[0], DATA::euler[1], DATA::euler[2],
         DATA::maxG,
         DATA::baro[0], DATA::baro[1], DATA::baro[2],
-        DATA::gps.fixType, DATA::gps.lon, DATA::gps.lat, DATA::gps.height,
-        DATA::gps.velN, DATA::gps.velE, DATA::gps.velD,
         DATA::eject);
+
+    // GPS 포함 버전
+    // int len = snprintf(buf, sizeof(buf),
+    //     "%ld,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
+    //     "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.7f,%.7f,%.2f,%.2f,%.2f,%.2f,%d\n",
+    //     DATA::timestamp,
+    //     DATA::acc[0], DATA::acc[1], DATA::acc[2],
+    //     DATA::gyro[0], DATA::gyro[1], DATA::gyro[2],
+    //     DATA::mag[0],  DATA::mag[1],  DATA::mag[2],
+    //     DATA::euler[0], DATA::euler[1], DATA::euler[2],
+    //     DATA::maxG,
+    //     DATA::baro[0], DATA::baro[1], DATA::baro[2],
+    //     DATA::gps.fixType, DATA::gps.lon, DATA::gps.lat, DATA::gps.height,
+    //     DATA::gps.velN, DATA::gps.velE, DATA::gps.velD,
+    //     DATA::eject);
 
     if (len < 0 || len >= (int)sizeof(buf)) {
         Serial.println("❌ snprintf overflow");
@@ -140,18 +140,8 @@ int SDFatLogger::write_data() {
     return 1;
 }
 
-// void SDFatLogger::setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, int eject) {
-//     DATA::timestamp = timestamp;
-//     DATA::acc = acc;
-//     DATA::gyro = gyro;
-//     DATA::mag = mag;
-//     DATA::euler = euler;
-//     DATA::maxG = maxG;
-//     DATA::baro = baro;
-//     DATA::eject = eject;
-// }
-
-void SDFatLogger::setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, GpsData &gps, int eject) {
+// GPS 데이터 제외 버전전
+void SDFatLogger::setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, int eject) {
     DATA::timestamp = timestamp;
     DATA::acc = acc;
     DATA::gyro = gyro;
@@ -159,9 +149,21 @@ void SDFatLogger::setData(int32_t timestamp, float * acc, float * gyro, float * 
     DATA::euler = euler;
     DATA::maxG = maxG;
     DATA::baro = baro;
-    DATA::gps = gps;
     DATA::eject = eject;
 }
+
+// GPS 데이터 저장 버전
+// void SDFatLogger::setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, GpsData &gps, int eject) {
+//     DATA::timestamp = timestamp;
+//     DATA::acc = acc;
+//     DATA::gyro = gyro;
+//     DATA::mag = mag;
+//     DATA::euler = euler;
+//     DATA::maxG = maxG;
+//     DATA::baro = baro;
+//     DATA::gps = gps;
+//     DATA::eject = eject;
+// }
 
 bool SDFatLogger::isInit() {
     return init;
