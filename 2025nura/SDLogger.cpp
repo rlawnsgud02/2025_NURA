@@ -73,8 +73,8 @@ int SDFatLogger::create_new_data_file() {
     }
 
     dataFile.println("[Data]");
-    dataFile.println("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz,Roll,Pitch,Yaw,maxG,T,P,P_alt,fix,Lon,Lat,Alt,VN,VE,VD,Chute"); // GPS 포함 버전
-    // dataFile.println("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz,Roll,Pitch,Yaw,maxG,T,P,P_alt,Chute");
+    // dataFile.println("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz,Roll,Pitch,Yaw,maxG,T,P,P_alt,fix,Lon,Lat,Alt,VN,VE,VD,Chute"); // GPS 포함 버전
+    dataFile.println("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz,Roll,Pitch,Yaw,maxG,T,P,P_alt,Chute");
     // dataFile.flush();
     dataFile.close();
     
