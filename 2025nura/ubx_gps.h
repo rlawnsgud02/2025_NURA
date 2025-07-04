@@ -6,16 +6,16 @@
 #include "ubx_config.h"
 
 struct GpsData {
-    unsigned int iTOW;
-    unsigned short year;
-    unsigned char month;
-    unsigned char day;
-    unsigned char hour;
-    unsigned char min;
-    unsigned char sec;
+    // unsigned int iTOW;
+    // unsigned short year;
+    // unsigned char month;
+    // unsigned char day;
+    // unsigned char hour;
+    // unsigned char min;
+    // unsigned char sec;
     
     unsigned char fixType;
-    float lon, lat, height, hMSL;
+    float lon, lat, height;
     float velN, velE, velD;
 };
 

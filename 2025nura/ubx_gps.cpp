@@ -191,20 +191,20 @@ void UbxGPS::decode(char byte)
 
 
 void UbxGPS::parse_PVT(char *packet) { //PVT 데이터 파싱. PVT는 100바이트.
-    gps.iTOW = byte_to_int(packet+6, 4);
-    gps.year = (short)byte_to_int(packet+10, 2);
-    gps.month = packet[12];
-    gps.day = packet[13];
-    gps.hour = packet[14];
-    gps.min = packet[15];
-    gps.sec = packet[16];
-    gps.fixType = packet[26];
-    gps.lon = byte_to_int(packet + 30, 4) / 1e7;
-    gps.lat = byte_to_int(packet + 34, 4) / 1e7;
-    gps.height = byte_to_int(packet + 38, 4) / 1000.0;
-    gps.velN = byte_to_int(packet + 54, 4) / 1000.0;
-    gps.velE = byte_to_int(packet + 58, 4) / 1000.0;
-    gps.velD = byte_to_int(packet + 62, 4) / 1000.0;
+    // gps.iTOW = byte_to_int(packet+6, 4);
+    // gps.year = (short)byte_to_int(packet+10, 2);
+    // gps.month = packet[12];
+    // gps.day = packet[13];
+    // gps.hour = packet[14];
+    // gps.min = packet[15];
+    // gps.sec = packet[16];
+    gps.fixType = packet[26]; //
+    gps.lon = byte_to_int(packet + 30, 4) / 1e7; //
+    gps.lat = byte_to_int(packet + 34, 4) / 1e7; //
+    gps.height = byte_to_int(packet + 38, 4) / 1000.0; //
+    gps.velN = byte_to_int(packet + 54, 4) / 1000.0; //
+    gps.velE = byte_to_int(packet + 58, 4) / 1000.0; //
+    gps.velD = byte_to_int(packet + 62, 4) / 1000.0; //
 }
 
 void UbxGPS::parse_POSLLH(char *packet) { //POSLLH 데이터 파싱

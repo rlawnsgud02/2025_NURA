@@ -58,6 +58,7 @@ namespace IMU{
         ROLL = MZ + 4,
         PITCH = ROLL + 4,
         YAW = PITCH + 4,
+        
         TEMP = YAW + 4,
         P  = TEMP + 4, 
         P_ALT = P + 4,
@@ -104,6 +105,7 @@ namespace IMUGPS
         ROLL = MZ + 4,
         PITCH = ROLL + 4,
         YAW = PITCH + 4,
+
         TEMP = YAW + 4,
         P  = TEMP + 4, 
         P_ALT = P + 4,

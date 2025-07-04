@@ -7,6 +7,7 @@
 #include "ubx_gps.h"
 #include "BMP390L.h"
 #include "SDLogger.h"
+#include "NMT.h"
 
 // 핀 설정
 #define GPS_TX 6 // GPS TX핀
@@ -28,9 +29,11 @@ SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
 UbxGPS gps(gpsSerial);
 EBIMU_AHRS imu(Serial2, IMU_RX, IMU_TX);
 BMP390L Baro;
-SDFatLogger sd(CS_PIN); 
+SDFatLogger sd(CS_PIN);
+NMT rf(Serial1, RF_RX, RF_TX, 9600);
 
 GpsData gpsdata; // GPS 데이터 저장할 구조체 변수
+char packet[100];
 
 // 변수 선언
 float acc[3], gyro[3], mag[3], RPY[3], baro[3];
@@ -47,10 +50,14 @@ bool sd_init = true; // SD 카드 초기화 여부
 void setup()
 {
     Serial.begin(115200);
+    // 아래의 while문은 USB로 연결하지 않은 아두이노 단독 실행의 경우 반드시 주석!!
     while (!Serial); // Serial 초기화 대기
     Serial.println("-----| Serial Ready! |-----");
 
+    rf.initialize();
+    delay(5000);
     imu.initialize();
+    rf.print("IMU Ready!");
 
     // 센서 초기화
     gpsSerial.begin(19200);
@@ -67,6 +74,7 @@ void setup()
     pinMode(safeyPin, INPUT);
 
     Serial.println("-----| START! |-----");
+    rf.print("Avionics Ready!");
     Timer = millis(); // 타이머 시작
 }
 
@@ -111,15 +119,27 @@ void loop()
         }
     }
 
+    // sd 카드 데이터 저장
     sd.openFile();
     sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, chute_eject);
     // sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, gpsdata, chute_eject);
-    // sd.setData(timeStamp, bae, bae, bae, bae, 1.1, bae, chute_eject);
     sd.write_data();
     sd.closeFile();
 
+    rf.print("1234567890");
+
+    // RF 데이터 전송
+    int packet_len = 0;
+    if(gps.is_updated()){
+        int packet_len = encoder.get_imu_gps_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, gpsdata, chute_eject);
+    } 
+    else{
+        int packet_len = encoder.get_imu_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, chute_eject);
+    }
+    rf.transmit_packet(packet, packet_len);
+    
     // 디버깅용 print
-    // imu.printData();
+    imu.printData();
     // Serial.print("Max G: "); Serial.println(maxG); // 최대 G값 출력
     // gps.printGps(); // GPS 데이터 출력
     // Serial.print("Baro Temp: "); Serial.print(baro[0]); Serial.print(" C, ");

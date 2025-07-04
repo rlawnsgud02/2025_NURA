@@ -5,7 +5,7 @@ Packet::Packet()
     buf[0] = Packet::HEADER1;
     buf[1] = Packet::HEADER2;
 }
- 
+
 void Packet::add_chksum()
 {
     int len = buf[3] + 5;
