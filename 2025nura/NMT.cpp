@@ -17,6 +17,7 @@ void NMT::initialize() {
     sendCommand("AT+FBND=1\r\n", 200);    // RF 주파수 대역 설정
     sendCommand("AT+CHN=2\r\n", 200);     // RF 채널 설정
     sendCommand("AT+HPERF=1\r\n", 200);   // 고성능 수신 모드 활성화
+    sendCommand("AT+DRATE=2\r\n", 200);
     // sendCommand("AT+ID?\r\n", 200);
     sendCommand("AT+RST=1\r\n", 500);
 

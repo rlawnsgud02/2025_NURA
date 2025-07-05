@@ -8,10 +8,14 @@
 #include "BMP390L.h"
 #include "SDLogger.h"
 #include "NMT.h"
+#include "packet.h"
 
 // 핀 설정
-#define GPS_TX 6 // GPS TX핀
-#define GPS_RX 7 // GPS RX핀
+// #define GPS_TX 6 // GPS TX핀
+// #define GPS_RX 7 // GPS RX핀
+#define GPS_SDA 6 // GPS SDA핀
+#define GPS_SCL 7 // GPS SCL핀
+#define GPS_INT A7 // GPS 인터럽트 핀
 #define IMU_TX 8 // IMU TX핀
 #define IMU_RX 9 // IMU RX핀
 #define BARO_SDA A0
@@ -25,12 +29,14 @@
 #define safeyPin 3
 
 // 객체 생성
-SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
-UbxGPS gps(gpsSerial);
+// SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
+// UbxGPS gps(gpsSerial);
+UbxGPS gps(GPS_SDA, GPS_SCL); // I2C를 사용한 GPS 객체 생성
 EBIMU_AHRS imu(Serial2, IMU_RX, IMU_TX);
 BMP390L Baro;
 SDFatLogger sd(CS_PIN);
 NMT rf(Serial1, RF_RX, RF_TX, 9600);
+Packet data;
 
 GpsData gpsdata; // GPS 데이터 저장할 구조체 변수
 char packet[100];
@@ -40,6 +46,7 @@ float acc[3], gyro[3], mag[3], RPY[3], baro[3];
 float maxG = 0; // 발사 직후의 최대 G값
 int chute_eject = 0; // 낙하산 사출 여부
 
+volatile bool gpsReady = false;
 static uint32_t timeStamp = 0;
 static uint32_t Timer = 0;
 
@@ -47,27 +54,33 @@ bool threadFlag1 = false; // 스레드 시작을 알리는 플래그
 bool isLaunched = false;
 bool sd_init = true; // SD 카드 초기화 여부
 
+// Interrupt가 들어오면 실행
+void gpsInterrupt() {
+  gpsReady = true;
+}
+
 void setup()
 {
     Serial.begin(115200);
-    // 아래의 while문은 USB로 연결하지 않은 아두이노 단독 실행의 경우 반드시 주석!!
-    while (!Serial); // Serial 초기화 대기
+    // while (!Serial); // Serial 초기화 대기. USB로 연결하지 않은 아두이노 단독 실행의 경우 반드시 주석!!
     Serial.println("-----| Serial Ready! |-----");
 
     rf.initialize();
     delay(5000);
+
     imu.initialize();
     rf.print("IMU Ready!");
 
-    // 센서 초기화
-    gpsSerial.begin(19200);
-    delay(1000);
+    // gpsSerial.begin(19200);
     gps.initialize();
     delay(500);
     
     Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
     delay(500);
     
+    pinMode(GPS_INT, INPUT); // GPS 인터럽트 핀 설정
+    attachInterrupt(digitalPinToInterrupt(GPS_INT), gpsInterrupt, RISING);
+
     // 디버깅 핀 설정
     // pinMode(threadPin1, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
@@ -75,7 +88,6 @@ void setup()
 
     Serial.println("-----| START! |-----");
     rf.print("Avionics Ready!");
-    Timer = millis(); // 타이머 시작
 }
 
 void loop()
@@ -83,6 +95,7 @@ void loop()
     if(sd_init)
     {
         sd.initialize();
+        Timer = millis(); // 타이머 시작
         sd_init = false;
     }
 
@@ -109,14 +122,15 @@ void loop()
         maxG = max(maxG, acc[2]); 
     }
 
-    if(gpsSerial.available()) {
-      gps.get_gps_data(gpsdata); // gpsdata에 구조체에 데이터 저장
-    }
-
     if (Baro.isDataReady()) {
         if (Baro.performReading()) {
             Baro.getTempPressAlt(baro[0], baro[1], baro[2]);
         }
+    }
+
+    if (gpsReady) {
+        gpsReady = false; 
+        gps.get_gps_data(gpsdata);
     }
 
     // sd 카드 데이터 저장
@@ -126,22 +140,20 @@ void loop()
     sd.write_data();
     sd.closeFile();
 
-    rf.print("1234567890");
-
     // RF 데이터 전송
-    int packet_len = 0;
-    if(gps.is_updated()){
-        int packet_len = encoder.get_imu_gps_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, gpsdata, chute_eject);
-    } 
-    else{
-        int packet_len = encoder.get_imu_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, chute_eject);
-    }
-    rf.transmit_packet(packet, packet_len);
+    // int packet_len = 0;
+    // if(gps.is_updated()){
+        // packet_len = data.get_imu_gps_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, gpsdata, chute_eject);
+    // } 
+    // else{
+        // packet_len = data.get_imu_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, chute_eject);
+    // }
+    // rf.transmit_packet(packet, packet_len);
     
     // 디버깅용 print
-    imu.printData();
+    // imu.printData();
     // Serial.print("Max G: "); Serial.println(maxG); // 최대 G값 출력
-    // gps.printGps(); // GPS 데이터 출력
+    gps.printGps(); // GPS 데이터 출력
     // Serial.print("Baro Temp: "); Serial.print(baro[0]); Serial.print(" C, ");
     // Serial.print("Baro Press: "); Serial.print(baro[1]); Serial.print(" hPa, ");
     // Serial.print("Baro Alt: "); Serial.print(baro[2]); Serial.println(" m");

@@ -1,16 +1,20 @@
 #include "ubx_gps.h"
+#include <Wire.h>
 
-// Ublox M9N을 이용하여 UBX-NAV-PVT 데이터를 받는 클래스
-// Last update: 2025.03.24
+// UbxGPS 클래스 생성자. SoftwareSerial을 사용한 버전은 주석처리
+// UbxGPS::UbxGPS(SoftwareSerial& serial)
+//     : GPSserial(serial), new_update_flag(false) {}
 
-UbxGPS::UbxGPS(SoftwareSerial& serial)
-    : GPSserial(serial), new_update_flag(false) {}
-
+// I2C를 사용한 버전
+UbxGPS::UbxGPS(int sda, int scl)
+    : gpsSDA(sda), gpsSCL(scl), new_update_flag(false) {}
 
 void UbxGPS::initialize() {
     Serial.println("\n-----| GPS Initializing.. |-----\n");
 
-    set_config(UBX_config::PRT);
+    // set_config(UBX_config::PRT);
+    Wire.begin(gpsSDA, gpsSCL);
+
     set_config(UBX_config::NAV5);
     set_config(UBX_config::RATE);
     set_config(UBX_config::PMS);
@@ -23,19 +27,51 @@ void UbxGPS::initialize() {
     delay(500);
 }
 
-bool UbxGPS::get_gps_data(GpsData &data) { // GPS 데이터를 업데이트하고 인자로 받은 변수에 구조체로 저장한다.   
+// bool UbxGPS::get_gps_data(GpsData &data) { // GPS 데이터를 업데이트하고 인자로 받은 변수에 구조체로 저장한다.   
+//     bool packetReceived = false;
+
+//     while (GPSserial.available()) {
+//         byte = GPSserial.read();
+//         decode(byte);
+//         if (new_update_flag) {
+//             new_update_flag = false;
+//             data = gps;
+//             packetReceived = true;
+//         }
+//     }
+
+//     return packetReceived;
+// }
+
+bool UbxGPS::get_gps_data(GpsData &data) {
     bool packetReceived = false;
+    uint16_t bytesAvailable = 0;
 
-    // if (GPSserial.available() < 100) return false;  // UBX-PVT는 100바이트
-    // if (!GPSserial.available()) return false;  // UBX-PVT는 100바이트
+    // 1. u-blox 모듈의 0xFD 레지스터를 읽어 수신 가능한 데이터 바이트 수를 확인합니다.
+    Wire.beginTransmission(UBLOX_ADDR);
+    Wire.write(0xFD);
+    if (Wire.endTransmission(false) != 0) {
+        return false; // I2C 통신 오류
+    }
 
-    while (GPSserial.available()) {
-        byte = GPSserial.read();
-        decode(byte);
-        if (new_update_flag) {
-            new_update_flag = false;
-            data = gps;
-            packetReceived = true;
+    if (Wire.requestFrom((uint8_t)UBLOX_ADDR, (uint8_t)2) == 2) {
+        uint8_t msb = Wire.read();
+        uint8_t lsb = Wire.read();
+        bytesAvailable = (uint16_t)msb << 8 | lsb;
+    }
+
+    // 2. 수신할 데이터가 있으면 0xFF 레지스터에서 데이터를 읽어옵니다.
+    if (bytesAvailable > 0) {
+        Wire.requestFrom((uint8_t)UBLOX_ADDR, bytesAvailable);
+
+        while (Wire.available()) {
+            byte = Wire.read();
+            decode(byte); // 읽어온 바이트를 디코더로 넘깁니다.
+            if (new_update_flag) {
+                new_update_flag = false;
+                data = gps;
+                packetReceived = true;
+            }
         }
     }
 
@@ -51,36 +87,51 @@ char UbxGPS::is_fixed() {
 }
 
 void UbxGPS::set_config(const char *cmd) {
-    int len = cmd[4] + 8; // UBX 메시지 길이 계산
-    for (int i = 0; i < len; i++) {
-        GPSserial.write(cmd[i]);
+    // int len = cmd[4] + 8; // UBX 메시지 길이 계산
+    // for (int i = 0; i < len; i++) {
+    //     GPSserial.write(cmd[i]);
+    // }
+    // delay(30);
+
+    uint16_t payload_len = (uint16_t)cmd[5] << 8 | (uint8_t)cmd[4];
+    int total_len = payload_len + 8;
+
+    Wire.beginTransmission(UBLOX_ADDR);
+    Wire.write((const uint8_t*)cmd, total_len);
+    if (Wire.endTransmission() != 0) {
+        Serial.println("GPS Set Config Failed!");
     }
-    delay(30);
-    // 일단 다른 문제가 없으면 아래 코드 시도해보기 (더 효율적적)
-    // serial.write((const uint8_t*)cmd, len); // 바이트 배열을 한번에 전송
-    // serial.flush(); // 모든 데이터가 전송될 때까지 대기
+    delay(100);
 }
 
-void UbxGPS::disable_all_nmea(bool disable) { //모든 NMEA 비활성화. UBX 프로토콜만 사용할 것이므로 NMEA는 비활성화
+void UbxGPS::disable_all_nmea(bool disable) {
     char packet[16] = {0xB5, 0x62};
     int idx = 2;
 
     for (int id = 0x00; id <= 0x0F; id++) {
         packet[idx++] = 0x06;  // UBX_CLASS_CFG
         packet[idx++] = 0x01;  // UBX_ID_MSG
-        packet[idx++] = 0x08;
-        packet[idx++] = 0x00;
-        packet[idx++] = 0xF0;
-        packet[idx++] = id;
+        packet[idx++] = 0x08;  // Length LSB
+        packet[idx++] = 0x00;  // Length MSB
+        packet[idx++] = 0xF0;  // Payload: NMEA Class
+        packet[idx++] = id;    // Payload: NMEA ID
 
         char config = disable ? 0x00 : 0x01;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 6; i++) {
             packet[idx++] = config;
         }
-        packet[idx++] = 0x01;
+
+        // 체크섬 계산
+        char ck_a = 0, ck_b = 0;
+        for (int i = 2; i < 14; i++) {
+            ck_a = ck_a + packet[i];
+            ck_b = ck_b + ck_a;
+        }
+        packet[14] = ck_a;
+        packet[15] = ck_b;
 
         set_config(packet);
-        idx = 2;
+        idx = 2; // 다음 루프를 위해 인덱스 초기화
     }
 }
 
@@ -88,17 +139,25 @@ void UbxGPS::enable_ubx(char id_) {
     char packet[16] = {0xB5, 0x62};
     int idx = 2;
 
-    packet[idx++] = 0x06;
-    packet[idx++] = 0x01;
-    packet[idx++] = 0x08;
-    packet[idx++] = 0x00;
-    packet[idx++] = 0x01;
-    packet[idx++] = id_;
+    packet[idx++] = 0x06;  // UBX_CLASS_CFG
+    packet[idx++] = 0x01;  // UBX_ID_MSG
+    packet[idx++] = 0x08;  // Length LSB
+    packet[idx++] = 0x00;  // Length MSB
+    packet[idx++] = 0x01;  // Payload: UBX-NAV Class
+    packet[idx++] = id_;   // Payload: Target UBX ID
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 6; i++) {
         packet[idx++] = 0x01;
     }
-    packet[idx++] = 0x01;
+
+    // 체크섬 계산
+    char ck_a = 0, ck_b = 0;
+    for (int i = 2; i < 14; i++) {
+        ck_a = ck_a + packet[i];
+        ck_b = ck_b + ck_a;
+    }
+    packet[14] = ck_a;
+    packet[15] = ck_b;
 
     set_config(packet);
 }

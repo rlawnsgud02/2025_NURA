@@ -80,7 +80,7 @@ int Packet::get_imu_gps_packet(char * packet, uint32_t timestamp, float * acc, f
 
     buf[IMUGPS::EJECT] = ejection;
     
-    add_chksum();
+    add_chksum(); // 여기까지 92바이트
 
     memcpy(packet, buf, IMUGPS::SIZE+5);
 

@@ -2,8 +2,10 @@
 #define __UBX_GPS_H__
 
 #include <Arduino.h>
-#include <SoftwareSerial.h>
 #include "ubx_config.h"
+
+// #include <SoftwareSerial.h>
+#include <Wire.h> 
 
 struct GpsData {
     // unsigned int iTOW;
@@ -69,12 +71,26 @@ namespace UBX_ID // UBX Payload ID
 
 class UbxGPS {
 private:
-    SoftwareSerial& GPSserial;
-    int rxPin, txPin; // GPS의 RX, TX 핀
-    char buffer[100];  // 수신 버퍼
+    // SoftwareSerial 사용 버전 코드. 주석처리 //
+    // SoftwareSerial& GPSserial;
+    // int rxPin, txPin; // GPS의 RX, TX 핀
+    // char buffer[100];  // 수신 버퍼
 
-    GpsData gps; // GPS 데이터 저장할 구조체 변수
+    // GpsData gps; // GPS 데이터 저장할 구조체 변수
+    // bool new_update_flag;
+    // void decode(char byte);
+    // void parse_PVT(char *packet);
+    // void parse_POSLLH(char *packet);
+    // int byte_to_int(const char *ptr, int len); 
+    // char byte;
+
+    // I2C 사용 버전 코드 //
+    int gpsSDA;
+    int gpsSCL;
+    char buffer[100];
+    GpsData gps;
     bool new_update_flag;
+
     void decode(char byte);
     void parse_PVT(char *packet);
     void parse_POSLLH(char *packet);
@@ -82,7 +98,8 @@ private:
     char byte;
 
 public:
-    UbxGPS(SoftwareSerial& serial);
+    // UbxGPS(SoftwareSerial& serial);
+    UbxGPS(int SDA, int SCL); 
     void initialize();
     bool get_gps_data(GpsData &data);
     bool is_updated();
