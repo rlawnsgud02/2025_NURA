@@ -1,17 +1,5 @@
 #include "SDLogger.h"
 
-// namespace DATA {
-//     int32_t timestamp;
-//     float* acc;
-//     float* gyro;
-//     float* mag;
-//     float* euler;
-//     float maxG;
-//     float* baro;
-//     GpsData gps;
-//     int eject;
-// }
-
 namespace DATA {
     int32_t timestamp;
     float* acc;
@@ -20,8 +8,20 @@ namespace DATA {
     float* euler;
     float maxG;
     float* baro;
+    GpsData gps;
     int eject;
 }
+
+// namespace DATA {
+//     int32_t timestamp;
+//     float* acc;
+//     float* gyro;
+//     float* mag;
+//     float* euler;
+//     float maxG;
+//     float* baro;
+//     int eject;
+// }
 
 SDFatLogger::SDFatLogger(int cs) : CS_pin(cs), file_num(1), init(false) {
     memset(file_name, 0, sizeof(file_name));
@@ -73,8 +73,8 @@ int SDFatLogger::create_new_data_file() {
     }
 
     dataFile.println("[Data]");
-    // dataFile.println("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz,Roll,Pitch,Yaw,maxG,T,P,P_alt,fix,Lon,Lat,Alt,VN,VE,VD,Chute"); // GPS 포함 버전
-    dataFile.println("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz,Roll,Pitch,Yaw,maxG,T,P,P_alt,Chute");
+    dataFile.println("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz,Roll,Pitch,Yaw,maxG,T,P,P_alt,fix,Lon,Lat,Alt,VN,VE,VD,Chute"); // GPS 포함 버전
+    // dataFile.println("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz,Roll,Pitch,Yaw,maxG,T,P,P_alt,Chute");
     // dataFile.flush();
     dataFile.close();
     

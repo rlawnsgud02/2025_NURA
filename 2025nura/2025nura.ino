@@ -128,10 +128,11 @@ void loop()
         }
     }
 
-    if (gpsReady) {
-        gpsReady = false; 
-        gps.get_gps_data(gpsdata);
-    }
+    // if (gpsReady) {
+    //     gpsReady = false; 
+    //     gps.get_gps_data(gpsdata);
+    // }
+    gps.get_gps_data(gpsdata);
 
     // sd 카드 데이터 저장
     sd.openFile();
@@ -153,9 +154,13 @@ void loop()
     // 디버깅용 print
     // imu.printData();
     // Serial.print("Max G: "); Serial.println(maxG); // 최대 G값 출력
-    gps.printGps(); // GPS 데이터 출력
-    Serial.print("Baro Temp: "); Serial.print(baro[0]); Serial.print(" C, ");
-    Serial.print("Baro Press: "); Serial.print(baro[1]); Serial.print(" hPa, ");
-    Serial.print("Baro Alt: "); Serial.print(baro[2]); Serial.println(" m");
+    // gps.printGps(); // GPS 데이터 출력
+    Serial.print("Lat: "); Serial.print(gpsdata.lat, 7);
+    Serial.print(", Lon: "); Serial.print(gpsdata.lon, 7);
+    Serial.print(", Height: "); Serial.print(gpsdata.height);
+    Serial.print(", FixType: "); Serial.println(gpsdata.fixType);
+    // Serial.print("Baro Temp: "); Serial.print(baro[0]); Serial.print(" C, ");
+    // Serial.print("Baro Press: "); Serial.print(baro[1]); Serial.print(" hPa, ");
+    // Serial.print("Baro Alt: "); Serial.print(baro[2]); Serial.println(" m");
     // delay(500);
 }
