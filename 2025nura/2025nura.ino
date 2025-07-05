@@ -31,7 +31,7 @@
 // 객체 생성
 // SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
 // UbxGPS gps(gpsSerial);
-UbxGPS gps(GPS_SDA, GPS_SCL); // I2C를 사용한 GPS 객체 생성
+UbxGPS gps(Wire1, GPS_SDA, GPS_SCL); // I2C를 사용한 GPS 객체 생성
 EBIMU_AHRS imu(Serial2, IMU_RX, IMU_TX);
 BMP390L Baro;
 SDFatLogger sd(CS_PIN);
@@ -135,8 +135,8 @@ void loop()
 
     // sd 카드 데이터 저장
     sd.openFile();
-    sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, chute_eject);
-    // sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, gpsdata, chute_eject);
+    // sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, chute_eject);
+    sd.setData(timeStamp, acc, gyro, mag, RPY, maxG, baro, gpsdata, chute_eject);
     sd.write_data();
     sd.closeFile();
 
@@ -154,8 +154,8 @@ void loop()
     // imu.printData();
     // Serial.print("Max G: "); Serial.println(maxG); // 최대 G값 출력
     gps.printGps(); // GPS 데이터 출력
-    // Serial.print("Baro Temp: "); Serial.print(baro[0]); Serial.print(" C, ");
-    // Serial.print("Baro Press: "); Serial.print(baro[1]); Serial.print(" hPa, ");
-    // Serial.print("Baro Alt: "); Serial.print(baro[2]); Serial.println(" m");
+    Serial.print("Baro Temp: "); Serial.print(baro[0]); Serial.print(" C, ");
+    Serial.print("Baro Press: "); Serial.print(baro[1]); Serial.print(" hPa, ");
+    Serial.print("Baro Alt: "); Serial.print(baro[2]); Serial.println(" m");
     // delay(500);
 }

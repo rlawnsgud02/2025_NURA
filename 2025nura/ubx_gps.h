@@ -85,6 +85,7 @@ private:
     // char byte;
 
     // I2C 사용 버전 코드 //
+    TwoWire& gpsPort; // 제어할 I2C 포트 객체를 직접 참조
     int gpsSDA;
     int gpsSCL;
     char buffer[100];
@@ -99,7 +100,7 @@ private:
 
 public:
     // UbxGPS(SoftwareSerial& serial);
-    UbxGPS(int SDA, int SCL); 
+    UbxGPS(TwoWire& port, int sda, int scl); 
     void initialize();
     bool get_gps_data(GpsData &data);
     bool is_updated();

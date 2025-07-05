@@ -6,14 +6,14 @@
 //     : GPSserial(serial), new_update_flag(false) {}
 
 // I2C를 사용한 버전
-UbxGPS::UbxGPS(int sda, int scl)
-    : gpsSDA(sda), gpsSCL(scl), new_update_flag(false) {}
+UbxGPS::UbxGPS(TwoWire& port, int sda, int scl)
+    : gpsPort(port), gpsSDA(sda), gpsSCL(scl), new_update_flag(false) {}
 
 void UbxGPS::initialize() {
     Serial.println("\n-----| GPS Initializing.. |-----\n");
 
     // set_config(UBX_config::PRT);
-    Wire.begin(gpsSDA, gpsSCL);
+    gpsPort.begin(gpsSDA, gpsSCL);
 
     set_config(UBX_config::NAV5);
     set_config(UBX_config::RATE);
@@ -48,24 +48,24 @@ bool UbxGPS::get_gps_data(GpsData &data) {
     uint16_t bytesAvailable = 0;
 
     // 1. u-blox 모듈의 0xFD 레지스터를 읽어 수신 가능한 데이터 바이트 수를 확인합니다.
-    Wire.beginTransmission(UBLOX_ADDR);
-    Wire.write(0xFD);
-    if (Wire.endTransmission(false) != 0) {
+    gpsPort.beginTransmission(UBLOX_ADDR);
+    gpsPort.write(0xFD);
+    if (gpsPort.endTransmission(false) != 0) {
         return false; // I2C 통신 오류
     }
 
-    if (Wire.requestFrom((uint8_t)UBLOX_ADDR, (uint8_t)2) == 2) {
-        uint8_t msb = Wire.read();
-        uint8_t lsb = Wire.read();
+    if (gpsPort.requestFrom((uint8_t)UBLOX_ADDR, (uint8_t)2) == 2) {
+        uint8_t msb = gpsPort.read();
+        uint8_t lsb = gpsPort.read();
         bytesAvailable = (uint16_t)msb << 8 | lsb;
     }
 
     // 2. 수신할 데이터가 있으면 0xFF 레지스터에서 데이터를 읽어옵니다.
     if (bytesAvailable > 0) {
-        Wire.requestFrom((uint8_t)UBLOX_ADDR, bytesAvailable);
+        gpsPort.requestFrom((uint8_t)UBLOX_ADDR, bytesAvailable);
 
-        while (Wire.available()) {
-            byte = Wire.read();
+        while (gpsPort.available()) {
+            byte = gpsPort.read();
             decode(byte); // 읽어온 바이트를 디코더로 넘깁니다.
             if (new_update_flag) {
                 new_update_flag = false;
@@ -96,9 +96,9 @@ void UbxGPS::set_config(const char *cmd) {
     uint16_t payload_len = (uint16_t)cmd[5] << 8 | (uint8_t)cmd[4];
     int total_len = payload_len + 8;
 
-    Wire.beginTransmission(UBLOX_ADDR);
-    Wire.write((const uint8_t*)cmd, total_len);
-    if (Wire.endTransmission() != 0) {
+    gpsPort.beginTransmission(UBLOX_ADDR);
+    gpsPort.write((const uint8_t*)cmd, total_len);
+    if (gpsPort.endTransmission() != 0) {
         Serial.println("GPS Set Config Failed!");
     }
     delay(100);

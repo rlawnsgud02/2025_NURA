@@ -1,11 +1,11 @@
 #include "ejection.h"
 
-//클래스 사용 방법
+// ejection 객체 사용 방법
 /*
 객체 생성 시 is_ejected safetypin은 기본 파라미터로 초기화됨
 사출 type, anglegyro, max_avg_alt, avg_alt, time 모두 0으로 초기화
 
-메인 파일에서 객체 생성 후, 객체이름.eject(euler, alt); 함수만 호출하면 작동함
+메인 파일에서 객체 생성 후, 객체이름.eject(euler, alt, mes); 함수만 호출하면 작동함 -> mes는 강제 사출을 위해 추가함
 
 현재 25.07.05 16:20에
 코드의 기본적인 틀만 작성했으며 세부적인 코드를 추가하여 구현해야함
@@ -16,6 +16,7 @@
 
 모든 데이터를 pointer로 구현할 수도 있지만(데이터 안정화 보장 가능) 굳이..?
 */
+
 
 ejection::ejection(bool is_ejected, bool safetypin): is_ejected(is_ejected), safetypin(safetypin) {
     type = 0; anglegro = 0; max_avg_alt = 0; avg_alt = 0; time = 0;
@@ -52,8 +53,8 @@ bool ejection::eject_time() {
     return false;
 }
 
-void ejection::eject(double *euler, double alt) {
-    is_ejected = eject_gyro(euler) || eject_alt(alt) || eject_time();
+void ejection::eject(double *euler, double alt, int mes = 0) { // mes -> GCS에서 통신으로 사출하기 위해
+    is_ejected = (mes == 1) ? (type = 4, true) : ((type = 0), eject_gyro(euler) || eject_alt(alt) || eject_time());
     message();
 }
 
@@ -70,6 +71,10 @@ void ejection::message() {
 
             case 3:
                 printf("시간"); //더 작성해야함
+                break;
+
+            case 4:
+                printf("강제");
                 break;
         }
         printf("사출 성공"); //더 작성해야함
