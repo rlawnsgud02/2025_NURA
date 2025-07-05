@@ -3,6 +3,8 @@
 
 #define MAX_BUF 50
 
+#include <math.h>
+
 class ejection {
 private:
 

@@ -36,7 +36,7 @@ bool ejection::eject_alt(double alt) {
     avg_alt += alt; //alt_avg를 구하는 방법이 생각 안남 ㅅㅂㅠ
     max_avg_alt = (avg_alt > max_avg_alt) ? avg_alt : max_avg_alt;
 
-    if (max_avg_alt - avg_alt) {
+    if (max_avg_alt - avg_alt > 3) {
         //사출 코드 추가
         type = 2;
         return true;
