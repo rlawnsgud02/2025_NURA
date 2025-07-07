@@ -62,7 +62,7 @@ void gpsInterrupt() {
 void setup()
 {
     Serial.begin(115200);
-    // while (!Serial); // Serial 초기화 대기. USB로 연결하지 않은 아두이노 단독 실행의 경우 반드시 주석!!
+    while (!Serial); // Serial 초기화 대기. USB로 연결하지 않은 아두이노 단독 실행의 경우 반드시 주석!!
     Serial.println("-----| Serial Ready! |-----");
 
     rf.initialize();
@@ -152,13 +152,13 @@ void loop()
     // rf.transmit_packet(packet, packet_len);
     
     // 디버깅용 print
-    // imu.printData();
+    imu.printData();
     // Serial.print("Max G: "); Serial.println(maxG); // 최대 G값 출력
     // gps.printGps(); // GPS 데이터 출력
-    Serial.print("Lat: "); Serial.print(gpsdata.lat, 7);
-    Serial.print(", Lon: "); Serial.print(gpsdata.lon, 7);
-    Serial.print(", Height: "); Serial.print(gpsdata.height);
-    Serial.print(", FixType: "); Serial.println(gpsdata.fixType);
+    // Serial.print("Lat: "); Serial.print(gpsdata.lat, 7);
+    // Serial.print(", Lon: "); Serial.print(gpsdata.lon, 7);
+    // Serial.print(", Height: "); Serial.print(gpsdata.height);
+    // Serial.print(", FixType: "); Serial.println(gpsdata.fixType);
     // Serial.print("Baro Temp: "); Serial.print(baro[0]); Serial.print(" C, ");
     // Serial.print("Baro Press: "); Serial.print(baro[1]); Serial.print(" hPa, ");
     // Serial.print("Baro Alt: "); Serial.print(baro[2]); Serial.println(" m");
