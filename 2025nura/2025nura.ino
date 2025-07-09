@@ -1,6 +1,6 @@
 /* ----------------------------------------
     2025 NURA AHRS & Wireless Communication 
-    - Last update: 2025.05.19
+    - Last update: 2025.07.09
    ---------------------------------------- */
 
 #include "EBIMU_AHRS.h"
@@ -22,6 +22,11 @@
 #define CS_PIN 10
 #define BARO_SDA A0
 #define BARO_SCL A1
+#define CANARD1 A2
+#define CANARD2 A3
+#define CANARD3 A4
+#define CANARD4 A5
+#define CHUTE A6
 
 // 외부 입력 받기 또는 LED 제어
 #define THREAD_PIN A7 // 스레드 확인용 디버깅 핀. LED를 연결하여 깜빡이도록 구현 가능. D2에 해당

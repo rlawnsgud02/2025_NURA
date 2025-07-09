@@ -12,6 +12,7 @@
         "text_encoding": "cpp",
         "ostream": "cpp",
         "*.tcc": "cpp",
-        "streambuf": "cpp"
+        "streambuf": "cpp",
+        "limits": "cpp"
     }
 }
