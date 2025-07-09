@@ -18,7 +18,7 @@ void Packet::add_chksum()
 
 int Packet::get_imu_packet(char * packet, uint32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float * press, uint8_t ejection)
 {
-    buf[2] = MSG_IMU;
+    buf[2] = static_cast<uint8_t>(Packet::MsgID::IMU);;
     buf[3] = sizeof(OptimizedImuPayload) + 4; // payload_size(33) + timestamp_size(4)
     
     memcpy(buf + 4, &timestamp, 4);
@@ -44,12 +44,12 @@ int Packet::get_imu_packet(char * packet, uint32_t timestamp, float * acc, float
 
     int final_size = sizeof(OptimizedImuPayload) + 4 + 5; // payload + timestamp + (header,id,len,chksum)
     memcpy(packet, buf, final_size);
-    return final_size; // 36Byte
+    return final_size; // 42Byte
 }
 
 // int Packet::get_gps_packet(char * packet, uint32_t timestamp, GpsData &gps)
 // {
-//     buf[2] = MSG_GPS;
+//     buf[2] = static_cast<uint8_t>(Packet::MsgID::GPS);;
 //     buf[3] = sizeof(OptimizedGpsPayload) + 4; // payload_size(19) + timestamp_size(4)
     
 //     memcpy(buf + 4, &timestamp, 4);
@@ -76,7 +76,7 @@ int Packet::get_imu_packet(char * packet, uint32_t timestamp, float * acc, float
 
 int Packet::get_imu_gps_packet(char* packet, uint32_t timestamp, float* acc, float* gyro, float* mag, float* euler, float* press, GpsData& gps, uint8_t ejection)
 {
-    buf[2] = MSG_IMU_GPS;
+    buf[2] = static_cast<uint8_t>(Packet::MsgID::IMU_GPS);
     buf[3] = sizeof(OptimizedImuGpsPayload) + 4; // payload_size(52) + timestamp_size(4)
     
     //
