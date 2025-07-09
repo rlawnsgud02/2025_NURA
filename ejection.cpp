@@ -5,7 +5,7 @@
 객체 생성 시 is_ejected safetypin은 기본 파라미터로 초기화됨
 사출 type, anglegyro, max_avg_alt, avg_alt, time 모두 0으로 초기화
 
-메인 파일에서 객체 생성 후, 객체이름.eject(euler, alt, mes); 함수만 호출하면 작동함 -> mes는 강제 사출을 위해 추가함
+메인 파일에서 객체 생성 후, 객체이름.eject(euler, alt, msg); 함수만 호출하면 작동함 -> msg는 강제 사출을 위해 추가함
 
 현재 25.07.05 16:20에
 코드의 기본적인 틀만 작성했으며 세부적인 코드를 추가하여 구현해야함

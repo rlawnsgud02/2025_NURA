@@ -11,22 +11,22 @@
 #include "packet.h"
 
 // 핀 설정
+#define RF_TX 4 // RF TX핀
+#define RF_RX 5 // RF RX핀
 // #define GPS_TX 6 // GPS TX핀
 // #define GPS_RX 7 // GPS RX핀
 #define GPS_SDA 6 // GPS SDA핀
 #define GPS_SCL 7 // GPS SCL핀
-#define GPS_INT A7 // GPS 인터럽트 핀
 #define IMU_TX 8 // IMU TX핀
 #define IMU_RX 9 // IMU RX핀
+#define CS_PIN 10
 #define BARO_SDA A0
 #define BARO_SCL A1
-#define RF_TX 4 // RF TX핀
-#define RF_RX 5 // RF RX핀
-#define CS_PIN 10
 
-// Debuging pins
-#define threadPin1 2 // 스레드 확인용 디버깅 핀. LED를 연결하여 깜빡이도록 구현 가능. D2에 해당
-#define safeyPin 3
+// 외부 입력 받기 또는 LED 제어
+#define THREAD_PIN A7 // 스레드 확인용 디버깅 핀. LED를 연결하여 깜빡이도록 구현 가능. D2에 해당
+#define SAFETY_PIN 2 // RBF
+#define LAUNCH_PIN 3 // 발사 감지 핀. 제거 시 부저 울리게 설계
 
 // 객체 생성
 // SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
