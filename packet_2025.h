@@ -2,8 +2,8 @@
 #define __PACKET_H__
 
 #include <Arduino.h>
-#include <cstdint>
-#include <cstring>
+// #include <cstdint>
+// #include <cstring>
 #include "ubx_gps.h"
 
 template <typename T, size_t Size>
@@ -49,44 +49,48 @@ private:
 };
 
 #pragma pack(push, 1) // 1바이트 단위로 메모리 정렬
-struct OptimizedImuPayload { // 총 27Byte - Only IMU
+struct OptimizedImuPayload { // 총 33Byte - Only IMU
     int16_t acc[3]; // 2 + 2 + 2 = 6
     int16_t gyro[3]; // 2 + 2 + 2 = 6
     int16_t mag[3]; // 2 + 2 + 2 = 6
     int16_t euler[3]; // 2 + 2 + 2 = 6
-    int16_t pressure; // 2
-    // IMU 26Byte
+    uint16_t temperature; // 2
+    uint32_t pressure; // 4
+    uint16_t P_alt; // 2
+    // IMU 32Byte
     
     uint8_t ejection;
     // 1Byte
 };
 #pragma pack(pop)
 
-#pragma pack(push, 1)
-struct OptimizedGpsPayload { // 총 19Byte - Only GPS
-    int32_t lon; // 4
-    int32_t lat; // 4
-    int32_t alt; // 4
-    int16_t velN; // 2
-    int16_t velE; // 2
-    int16_t velD; // 2
-    uint8_t fixType; // 1
-    // GPS 19Byte
-};
-#pragma pack(pop)
+// #pragma pack(push, 1)
+// struct OptimizedGpsPayload { // 총 19Byte - Only GPS
+//     int32_t lon; // 4
+//     int32_t lat; // 4
+//     int32_t alt; // 4
+//     int16_t velN; // 2
+//     int16_t velE; // 2
+//     int16_t velD; // 2
+//     uint8_t fixType; // 1
+//     // GPS 19Byte
+// };
+// #pragma pack(pop)
 
 #pragma pack(push, 1)
-struct OptimizedImuGpsPayload { // 총 46Byte - IMU & GPS
+struct OptimizedImuGpsPayload { // 총 52Byte - IMU & GPS
     int16_t acc[3]; // 2 + 2 + 2 = 6
     int16_t gyro[3]; // 2 + 2 + 2 = 6
     int16_t mag[3]; // 2 + 2 + 2 = 6
     int16_t euler[3]; // 2 + 2 + 2 = 6
-    int16_t pressure; // 2
-    // IMU 26Byte
+    uint16_t temperature; // 2
+    uint32_t pressure; // 4
+    uint16_t P_alt; // 2
+    // IMU 32Byte
     
-    int32_t lon; // 4
-    int32_t lat; // 4
-    int32_t alt; // 4
+    uint32_t lon; // 4
+    uint32_t lat; // 4
+    uint32_t alt; // 4
     int16_t velN; // 2
     int16_t velE; // 2
     int16_t velD; // 2
