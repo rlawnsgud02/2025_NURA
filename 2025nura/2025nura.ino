@@ -8,7 +8,9 @@
 #include "BMP390L.h"
 #include "SDLogger.h"
 #include "NMT.h"
-#include "packet.h"
+// #include "packet.h"
+#include "packet_2025.h"
+
 
 // 핀 설정
 #define RF_TX 4 // RF TX핀
@@ -83,13 +85,10 @@ void setup()
     Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
     delay(500);
     
-    pinMode(GPS_INT, INPUT); // GPS 인터럽트 핀 설정
-    attachInterrupt(digitalPinToInterrupt(GPS_INT), gpsInterrupt, RISING);
-
     // 디버깅 핀 설정
     // pinMode(threadPin1, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
-    pinMode(safeyPin, INPUT);
+    pinMode(SAFETY_PIN, INPUT);
 
     Serial.println("-----| START! |-----");
     rf.print("Avionics Ready!");
@@ -147,14 +146,14 @@ void loop()
     sd.closeFile();
 
     // RF 데이터 전송
-    // int packet_len = 0;
-    // if(gps.is_updated()){
-        // packet_len = data.get_imu_gps_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, gpsdata, chute_eject);
-    // } 
-    // else{
-        // packet_len = data.get_imu_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, chute_eject);
-    // }
-    // rf.transmit_packet(packet, packet_len);
+    int packet_len = 0;
+    if(gps.is_updated()){
+        packet_len = data.get_imu_gps_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, gpsdata, chute_eject);
+    } 
+    else{
+        packet_len = data.get_imu_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, chute_eject);
+    }
+    rf.transmit_packet(packet, packet_len);
     
     // 디버깅용 print
     imu.printData();

@@ -1,4 +1,4 @@
-#include "packet.h"
+#include "packet_2025.h"
 
 Packet::Packet()
 {
@@ -18,7 +18,8 @@ void Packet::add_chksum()
 
 int Packet::get_imu_packet(char * packet, uint32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float * press, uint8_t ejection)
 {
-    buf[2] = static_cast<uint8_t>(Packet::MsgID::IMU);;
+    buf[2] = static_cast<uint8_t>(Packet::MsgID::IMU);
+
     buf[3] = sizeof(OptimizedImuPayload) + 4; // payload_size(33) + timestamp_size(4)
     
     memcpy(buf + 4, &timestamp, 4);
