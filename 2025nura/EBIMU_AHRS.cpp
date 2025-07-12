@@ -147,3 +147,7 @@ void EBIMU_AHRS::calibrateAll() {
     calibrateMagneto();
     Serial.println("All Sensor Calibration Complete.");
 }
+
+float EBIMU_AHRS::get_anglegro() {
+    return sqrt(pow(gyroX, 2) + pow(gyroY, 2));
+}

@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
+#include <math.h>
 
 class EBIMU_AHRS {
 public:
@@ -26,6 +27,8 @@ public:
     void printData();  // IMU 데이터 출력
     void getRPY(float &r, float &p, float &y);
     void getAccelGyroMagFloat(float* accel, float* gyro, float* mag);
+
+    float get_anglegro();
 
 private:
     HardwareSerial& IMU_Serial;

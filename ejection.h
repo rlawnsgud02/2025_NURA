@@ -4,30 +4,53 @@
 #define MAX_BUF 50
 
 #include <math.h>
+#include <ESP32Servo.h>
+
+#define MIN 800
+#define MAX 2200
+
+enum EjectionType {
+    NO_EJECTION = 0,
+    GYRO_EJECTION = 1,
+    ALT_EJECTION = 2,
+    TIME_EJECTION = 3,
+    MANUAL_EJECTION = 4
+};
 
 class ejection {
 private:
 
 
 public:
-    ejection(bool is_ejected = false, bool safetypin = true);
+    ejection(int servopin, bool safetypin, bool launchpin, bool is_ejected = false);
 
-    int type;
+    int8_t type;
+    int8_t count;
 
+    int servopin;
     bool is_ejected;
     bool safetypin;
+    bool launchpin;
 
+    double clac_BUF[MAX_BUF] = {0};
     double anglegro;
     double max_avg_alt;
     double avg_alt;
-    double time;
+    int32_t timer;
 
-    void eject(double *euler, double alt);
-    void message();
+    Servo *Eject_servo;
 
-    bool eject_gyro(double *euler);
+
+    int eject(float anglegro, double alt, int32_t time, int8_t msg = 0);
+    void SERVO();
+    // void message();
+
+    bool eject_gyro(float anglegro);
     bool eject_alt(double alt);
     bool eject_time();
+    int8_t eject_manual();
+
+    void BUF_avg(double alt);
 
 };
 
