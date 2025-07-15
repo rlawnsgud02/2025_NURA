@@ -1,10 +1,10 @@
 #ifndef __EJECTION_H__
 #define __EJECTION_H__
 
-#define MAX_BUF 50
-
 #include <math.h>
-#include <ESP32Servo.h>
+#include <Arduino.h>
+
+#define MAX_BUF 50
 
 #define MIN 800
 #define MAX 2200
@@ -19,18 +19,14 @@ enum EjectionType {
 
 class ejection {
 private:
-
-
-public:
-    ejection(int servopin, bool safetypin, bool launchpin, bool is_ejected = false);
-
     int8_t type;
     int8_t count;
 
-    int servopin;
+    int8_t servopin;
+    int8_t CH;
+    bool safetypin; //int8_t
+    bool launchpin; //int8_t
     bool is_ejected;
-    bool safetypin;
-    bool launchpin;
 
     double clac_BUF[MAX_BUF] = {0};
     double anglegro;
@@ -38,12 +34,10 @@ public:
     double avg_alt;
     int32_t timer;
 
-    Servo *Eject_servo;
+    int8_t servo_frequency;
+    int8_t pwm_bits;
+    int16_t max_duty;
 
-
-    int eject(float anglegro, double alt, int32_t time, int8_t msg = 0);
-    void SERVO();
-    // void message();
 
     bool eject_gyro(float anglegro);
     bool eject_alt(double alt);
@@ -52,6 +46,13 @@ public:
 
     void BUF_avg(double alt);
 
+    void servo_write(int pulse);
+
+public:
+    ejection(int8_t servopin, int8_t ch, bool safetypin, bool launchpin, bool is_ejected = false); 
+
+    int eject(float anglegro, double alt, int32_t time, int8_t msg = 0);
+    void servo_init();
 };
 
 #endif
