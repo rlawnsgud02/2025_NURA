@@ -17,6 +17,7 @@ void EBIMU_AHRS::initialize() {
     sendCommand("<soa1>"); // 가속도 출력 활성화 (X, Y, Z 전체). RPY값 뒤에 출력됨.
     sendCommand("<sog1>"); // 자이로 출력 활성화
     sendCommand("<som1>"); // 지자기 출력 활성화
+    sendCommand("<cmoz>"); // YAW 오프셋 제거
 
     Serial.println("\n------| IMU Initialize Done! |------\n");
 }
@@ -149,5 +150,5 @@ void EBIMU_AHRS::calibrateAll() {
 }
 
 float EBIMU_AHRS::get_anglegro() {
-    return sqrt(pow(gyroX, 2) + pow(gyroY, 2));
+    return sqrt(pow(roll, 2) + pow(pitch, 2));
 }
