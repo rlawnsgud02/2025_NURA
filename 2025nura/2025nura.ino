@@ -31,7 +31,6 @@
 #define CHUTE A6
 
 // 외부 입력 받기 또는 LED 제어
-#define THREAD_PIN A7 // 스레드 확인용 디버깅 핀. LED를 연결하여 깜빡이도록 구현 가능. D2에 해당
 #define SAFETY_PIN 2 // RBF
 #define LAUNCH_PIN 3 // 발사 감지 핀. 제거 시 부저 울리게 설계
 
@@ -60,8 +59,6 @@ bool threadFlag1 = false; // 스레드 시작을 알리는 플래그
 bool isLaunched = false;
 bool sd_init = true; // SD 카드 초기화 여부
 
-SemaphoreHandle_t rpyMutex;
-SemaphoreHandle_t baroMutex;
 
 void setup()
 {
@@ -87,57 +84,48 @@ void setup()
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(SAFETY_PIN, INPUT);
 
-    // rpyMutex = xSemaphoreCreateMutex();
-    // baroMutex = xSemaphoreCreateMutex();
-    // if (rpyMutex != NULL && baroMutex != NULL) {
-    //     Serial.println("Mutex created successfully.");
-    // }
-
     // RTOS 설정. Function, Name, Stack Size, Parameter, Priority, Handle, Core
-    // xTaskCreatePinnedToCore(FlightControl, "Control Loop", 4096, NULL, 3, NULL, 1);
-    // xTaskCreatePinnedToCore(SensorFusion, "IMU, Barometric Loop", 4096, NULL, 2, NULL, 1);
-    // xTaskCreatePinnedToCore(Parachute, "Chute Ejcetion Loop", 4096, NULL, 2, NULL, 0);
-    // xTaskCreatePinnedToCore(SlowIO, "GPS, SD, RF", 4096, NULL, 1, NULL, 0);
-
-    // vTaskStartScheduler(); 
+    xTaskCreatePinnedToCore(FlightControl, "Control Loop", 4096, NULL, 3, NULL, 1);
+    xTaskCreatePinnedToCore(SensorFusion, "IMU, Barometric Loop", 4096, NULL, 2, NULL, 1);
+    xTaskCreatePinnedToCore(Parachute, "Chute Ejcetion Loop", 4096, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(SlowIO, "GPS, SD, RF", 4096, NULL, 1, NULL, 0);
 
     Serial.println("-----| START! |-----");
     rf.print("Avionics Ready!");
 }
 
-// void FlightControl(void *pvParameters)
-// {
-//     while (1)
-//     {
+void FlightControl(void *pvParameters)
+{
+    while (1)
+    {
 
         
-//     }
-// }
+    }
+}
 
-// void SensorFusion(void *pvParameters)
-// {
-//     while (1)
-//     {
-//         xSemaphoreTake(rpyMutex, portMAX_DELAY); // RPY 데이터 보호를 위한 뮤텍스 잠금
+void SensorFusion(void *pvParameters)
+{
+    while (1)
+    {
 
-//     }
-// }
+    }
+}
 
-// void Parachute(void *pvParameters)
-// {
-//     while (1)
-//     {
+void Parachute(void *pvParameters)
+{
+    while (1)
+    {
 
-//     }
-// }
+    }
+}
 
-// void SlowIO(void *pvParameters)
-// {
-//     while (1)
-//     {
+void SlowIO(void *pvParameters)
+{
+    while (1)
+    {
 
-//     }
-// }
+    }
+}
 
 void loop()
 {
@@ -188,17 +176,17 @@ void loop()
     sd.closeFile();
 
     // // RF 데이터 전송
-    int packet_len = 0;
-    if(gps.is_updated()){
-        packet_len = data.get_imu_gps_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, gpsdata, chute_eject);
-    } 
-    else{
-        packet_len = data.get_imu_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, chute_eject);
-    }
-    rf.transmit_packet(packet, packet_len);
+    // int packet_len = 0;
+    // if(gps.is_updated()){
+    //     packet_len = data.get_imu_gps_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, gpsdata, chute_eject);
+    // } 
+    // else{
+    //     packet_len = data.get_imu_packet(packet, timeStamp, acc, gyro, mag, RPY, baro, chute_eject);
+    // }
+    // rf.transmit_packet(packet, packet_len);
 
     // 디버깅용 print
-    // imu.printData();
+    imu.printData();
     // Serial.print("Max G: "); Serial.println(maxG); // 최대 G값 출력
     // gps.printGps(); // GPS 데이터 출력
     // Serial.print("Lat: "); Serial.print(gpsdata.lat, 7);

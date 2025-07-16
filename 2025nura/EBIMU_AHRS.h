@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #include <math.h>
+#include <string.h> // strtok, memcpy를 위해 추가
+#include <stdlib.h> // atof를 위해 추가
 
 class EBIMU_AHRS {
 public:
@@ -24,9 +26,11 @@ public:
     void calibrateAll();     // 모든 센서 캘리브레이션
 
     String readData(); // IMU 데이터 읽기
+    // void readData(char* buffer, int bufferSize); // IMU 데이터 읽기
     void printData();  // IMU 데이터 출력
     void getRPY(float &r, float &p, float &y);
     void getAccelGyroMagFloat(float* accel, float* gyro, float* mag);
+    
 
     float get_anglegro();
 
@@ -41,6 +45,7 @@ private:
     float gyroX, gyroY, gyroZ;
     float magX, magY, magZ;
     float roll, pitch, yaw;
+    // float maxG;
 
 };
 

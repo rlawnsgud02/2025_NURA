@@ -38,8 +38,67 @@ String EBIMU_AHRS::readData() {
     return "";
 }
 
+// void EBIMU_AHRS::readData(char* buffer, int bufferSize) {
+//     if (IMU_Serial.available()) {
+//         int bytesRead = IMU_Serial.readBytesUntil('\n', buffer, bufferSize - 1);
+//         buffer[bytesRead] = '\0'; // 문자열의 끝을 명시
+//     } else {
+//         buffer[0] = '\0'; // 읽은 데이터가 없으면 빈 문자열로 만듦
+//     }
+// }
+
+// void EBIMU_AHRS::parseData() {
+//     char imuBuffer[100]; // 데이터를 담을 충분한 크기의 char 배열 버퍼
+//     readData(imuBuffer, sizeof(imuBuffer));
+
+//     // 데이터가 비어있거나 시작 문자가 '*'가 아니면 즉시 종료
+//     if (imuBuffer[0] != '*') {
+//         return;
+//     }
+
+//     // 임시로 파싱된 데이터를 저장할 배열과 카운터
+//     float data[12];
+//     int field_count = 0;
+    
+//     // strtok 함수를 사용하여 쉼표(,)를 기준으로 문자열을 자름
+//     // 첫 번째 호출: 파싱할 문자열과 구분자 전달
+//     char* token = strtok(imuBuffer + 1, ","); // '*' 다음 문자부터 시작
+
+//     // while 루프를 돌며 다음 토큰(데이터 조각)을 가져옴
+//     while (token != NULL && field_count < 12) {
+//         // atof 함수: char* 타입의 문자열을 float으로 변환
+//         data[field_count] = atof(token);
+        
+//         // 다음 토큰을 계속 찾음
+//         token = strtok(NULL, ",");
+//         field_count++;
+//     }
+
+//     if (field_count == 12) {
+//         roll    = data[0];
+//         pitch   = data[1];
+//         yaw     = data[2];
+
+//         gyroX  = data[3];
+//         gyroY  = data[4];
+//         gyroZ  = data[5];
+
+//         accelX  = data[6];
+//         accelY  = data[7];
+//         accelZ  = data[8];
+
+//         magX    = data[9];
+//         magY    = data[10];
+//         magZ    = data[11];
+//     }
+// }
+
+
+// 구형 버전. 오염된 값을 반영할 가능성이 높음
 void EBIMU_AHRS::parseData() {
+
     String imuData = readData();
+
     if (imuData.length() > 0 && imuData.startsWith("*")) {
         imuData.remove(0, 1); // '*' 제거
 
