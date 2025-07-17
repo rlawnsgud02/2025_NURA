@@ -13,6 +13,8 @@
         "ostream": "cpp",
         "*.tcc": "cpp",
         "streambuf": "cpp",
-        "limits": "cpp"
+        "limits": "cpp",
+        "cstdint": "cpp",
+        "cmath": "cpp"
     }
 }

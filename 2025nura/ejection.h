@@ -24,20 +24,17 @@ private:
 
     int8_t servopin;
     int8_t CH;
-    bool safetypin; //int8_t
-    bool launchpin; //int8_t
     bool is_ejected;
 
     double clac_BUF[MAX_BUF] = {0};
     double anglegro;
     double max_avg_alt;
     double avg_alt;
-    int32_t timer;
+    uint32_t timer;
 
-    int8_t servo_frequency;
-    int8_t pwm_bits;
-    int16_t max_duty;
-
+    uint8_t servo_frequency;
+    uint8_t pwm_bits;
+    uint16_t max_duty;
 
     bool eject_gyro(float anglegro);
     bool eject_alt(double alt);
@@ -49,9 +46,9 @@ private:
     void servo_write(int pulse);
 
 public:
-    ejection(int8_t servopin, int8_t ch, bool safetypin, bool launchpin, bool is_ejected = false); 
+    ejection(int8_t servopin, int8_t ch, bool is_ejected = false); 
 
-    int eject(float anglegro, double alt, int32_t time, int8_t msg = 0);
+    int eject(float anglegro, double alt, uint32_t time, int8_t msg = 0);
     void servo_init();
 };
 

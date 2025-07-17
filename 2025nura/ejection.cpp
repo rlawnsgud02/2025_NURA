@@ -65,7 +65,7 @@ ejection::ejection(int servopin, int8_t ch, int8_t safetypin, int8_t launchpin, 
 */
 
 // 임시 테스트용
-ejection::ejection(int8_t servopin, int8_t ch, bool safetypin, bool launchpin, bool is_ejected): servopin(servopin), CH(ch), safetypin(safetypin), launchpin(launchpin), is_ejected(is_ejected) {
+ejection::ejection(int8_t servopin, int8_t ch, bool is_ejected): servopin(servopin), CH(ch), is_ejected(is_ejected) {
     type = NO_EJECTION; count = 0; anglegro = 0; max_avg_alt = 0; avg_alt = 0; timer = 0; servo_frequency = 50; pwm_bits = 12; max_duty = (1 << pwm_bits) - 1;
 }
 
@@ -112,26 +112,19 @@ bool ejection::eject_time() {
 
 int8_t ejection::eject_manual() {
     servo_write(MIN);
-    
     return MANUAL_EJECTION;
 }
 
-int ejection::eject(float anglegro, double alt, int32_t time, int8_t msg) { // mes -> GCS에서 통신으로 사출하기 위해
+int ejection::eject(float anglegro, double alt, uint32_t time, int8_t msg) { // msg -> GCS에서 통신으로 사출하기 위해
     timer = time;
-    if (safetypin == false) { // != safetypin
-        if (launchpin == false) { // != launchpin
-            if (timer % 1000 < 200) {
-                is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_gyro(anglegro) || eject_alt(alt) || eject_time());
-            }
-            else {
-                is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_alt(alt) || eject_time());
-            }
-        }
-    }   
-    if (is_ejected) {
-        return type; 
+
+    if (timer % 1000 < 200) {
+        is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_gyro(anglegro) || eject_alt(alt) || eject_time());
     }
-    return NO_EJECTION;
+    else {
+        is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_alt(alt) || eject_time());
+    }
+    return type;
 }
 
 
@@ -145,6 +138,7 @@ void ejection::BUF_avg(double alt) {
     avg_alt /= MAX_BUF;
     count = (count == MAX_BUF) ? 0 : count;
 }
+
 
 void ejection::servo_write(int pulse) {
     double period = 1000000.0 / servo_frequency;

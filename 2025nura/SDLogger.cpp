@@ -84,7 +84,7 @@ int SDFatLogger::create_new_data_file() {
 }
 
 int SDFatLogger::write_data() {
-    // dataFile = sd.open(file_name, O_WRITE | O_APPEND);
+    dataFile = sd.open(file_name, O_WRITE | O_APPEND);
     // openFile();
     if (dataFile.getWriteError()) {
         Serial.println("❌ writeError flag set!");

@@ -286,9 +286,9 @@ bool BMP390L::set_AltitudeBias() {
     
     for (int i = 0; i < 1000; i++) {
         if (performReading()) {
-            if (i >= 400) {
+            if (i >= 700) { // 조절해보기..?
                 AltitudeBias += readAltitude(0);
-                    count++;
+                count++;
             }
         } 
         delay(5);
