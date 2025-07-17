@@ -124,6 +124,14 @@ void setup()
     xTaskCreatePinnedToCore(Parachute, "Chute Ejcetion Loop", 4096, NULL, 2, NULL, 0);
     xTaskCreatePinnedToCore(SRG, "SD, RF, GPS LETSGO", 4096, NULL, 1, NULL, 0);
 
+    Serial.print("Total Heap Size (RAM): ");
+    Serial.print(ESP.getHeapSize()); Serial.println(" bytes");  Serial.print("Initial Free Heap Size: ");
+  Serial.print(ESP.getFreeHeap());
+  Serial.println(" bytes");Serial.print("Initial Minimum Free Heap Size: ");
+  Serial.print(ESP.getMinFreeHeap());
+  Serial.println(" bytes");
+  Serial.println("----------------------------------------");
+
     Serial.println("-----| START! |-----");
     rf.print("Avionics Ready!");
 }
@@ -250,4 +258,14 @@ void SRG(void *pvParameters)
     }
 }
 
-void loop() {}
+void loop() {
+  Serial.print("Current Free Heap: ");
+  Serial.print(ESP.getFreeHeap());
+  Serial.print(" bytes  |  ");
+
+  Serial.print("Minimum Free Heap since boot: ");
+  Serial.print(ESP.getMinFreeHeap());
+  Serial.println(" bytes");
+
+  delay(5000);
+}

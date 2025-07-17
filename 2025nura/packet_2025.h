@@ -105,7 +105,7 @@ struct OptimizedImuGpsPayload { // 총 52Byte - IMU & GPS
 class Packet
 {
 private:
-    char buf[256];
+    char buf[512];
     void add_chksum();
 
 public:
