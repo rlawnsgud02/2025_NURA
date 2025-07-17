@@ -116,6 +116,13 @@ int8_t ejection::eject_manual() {
 }
 
 int ejection::eject(float anglegro, double alt, uint32_t time, int8_t msg) { // msg -> GCS에서 통신으로 사출하기 위해
+/*
+    발사 시점 즉, launch pin이 0이 인식된 시점을 기점으로 파악. 
+        launchTime = parachute_data.timestamp;
+        if(parachute_data.timestamp > launchTime + 3500){
+    3.5초 이후부터 eject 판단
+    한번 1 또는 2의 신호를 주면 해당 신호를 유지. 이후 시간사출에 의해서 3으로 덮어씌워지는건 상관 없음. 작년에도 그랬음.
+*/
     timer = time;
 
     if (timer % 1000 < 200) {

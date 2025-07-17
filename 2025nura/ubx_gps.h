@@ -19,6 +19,8 @@ struct GpsData {
     unsigned char fixType;
     float lon, lat, height;
     float velN, velE, velD;
+
+    GpsData() : fixType(0), lon(0.0f), lat(0.0f), height(0.0f), velN(0.0f), velE(0.0f), velD(0.0f) {}
 };
 
 namespace UBX_ID // UBX Payload ID

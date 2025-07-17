@@ -51,26 +51,29 @@ NMT rf(Serial1, RF_RX, RF_TX, 9600);
 Packet payload;
 ejection chute(CHUTE, CH5, false); // 사출 객체 생성
 
-typedef struct {
-  float yaw; // 또는 제어에 필요한 roll 값
-} ControlData_t;
+bool sd_init = false;
 
-typedef struct {
+struct ControlData_t{
+  float yaw; // 또는 제어에 필요한 roll 값
+};
+
+struct BlackBoxData_t{
   uint32_t timestamp;
   float acc[3], gyro[3], mag[3], RPY[3];
   float baro[3];
   float maxG;
-} BlackBoxData_t;
+};
 
-typedef struct {
+struct ParachuteData_t{
   float roll, pitch;
   float altitude;
   uint32_t timestamp;
-} ParachuteData_t;
+};
 
-typedef struct {
-    int eject_type;
-} EjectionData_t;
+struct EjectionData_t{
+    int8_t eject_type;
+    EjectionData_t(): eject_type(0){} // 생성자를 통한 초기화
+};
 
 QueueHandle_t ControlQueue;
 QueueHandle_t BlackBoxQueue;
@@ -101,8 +104,6 @@ void setup()
     Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
     delay(500);
 
-    sd.initialize();
-
     chute.servo_init();
     rf.print("eject servo Ready!");
 
@@ -129,10 +130,10 @@ void setup()
 
 void FlightControl(void *pvParameters)
 {
-    ControlData_t parachute_data;
+    ControlData_t control_data;
     while(true) {
         // 제어 큐에서 데이터를 받아옴. 10ms 동안 데이터가 없으면 그냥 넘어감
-        if (xQueueReceive(ControlQueue, &parachute_data, pdMS_TO_TICKS(10)) == pdPASS) {
+        if (xQueueReceive(ControlQueue, &control_data, pdMS_TO_TICKS(10)) == pdPASS) {
             // 여기에 parachute_data.yaw 값을 이용한 카나드 제어 로직 구현
         }
             // vTaskDelay를 별도로 두지 않음. xQueueReceive가 최대 10ms 대기하므로 100Hz 주기가 맞춰짐.
@@ -192,28 +193,43 @@ void Parachute(void *pvParameters)
 
     while(true) {
         // 사출 판단 큐에서 데이터를 받아옴
+        int32_t launchTime = 0;
         if (xQueueReceive(ParachuteQueue, &parachute_data, portMAX_DELAY) == pdPASS) { // 새 데이터가 올 때까지 무한정 대기
-            if(digitalRead(SAFETY_PIN) == LOW) { // 1차 안전장치
-                if(digitalRead(LAUNCH_PIN) == LOW) { // 2차 안전장치
-                    ejection_data.eject_type = chute.eject(sqrt(pow(parachute_data.roll, 2) + pow(parachute_data.pitch, 2)), parachute_data.altitude, parachute_data.timestamp, 0); // 0은 메시지 타입. 필요시 변경 가능
-                    xQueueSend(EjectionQueue, &ejection_data, pdMS_TO_TICKS(5));
-                }
-            }
+            // if(digitalRead(SAFETY_PIN) == LOW) { // 1차 안전장치
+            //     if(digitalRead(LAUNCH_PIN) == LOW) { // 2차 안전장치
+                        ejection_data.eject_type = chute.eject(sqrt(pow(parachute_data.roll, 2) + pow(parachute_data.pitch, 2)), parachute_data.altitude, parachute_data.timestamp, 0); // 0은 메시지 타입. 필요시 변경 가능
+                        xQueueSend(EjectionQueue, &ejection_data, pdMS_TO_TICKS(5));
+                // }
+            // }
         }
     }
 }
 
 void SRG(void *pvParameters)
 {
-    // sd.initialize();
+    if(!sd_init){
+        sd.initialize();
+        sd_init = true;
+    }
+
     BlackBoxData_t blackbox_data;
     GpsData gpsData;
     EjectionData_t ejection_data;
 
+    bool blackbox_updated = false;
+    bool ejection_updated = false;
+
     while(true) {
         gps.get_gps_data(gpsData);
 
-        if (xQueueReceive(BlackBoxQueue, &blackbox_data, 0) == pdPASS || xQueueReceive(EjectionQueue, &ejection_data, 0) == pdPASS) {
+        if (xQueueReceive(BlackBoxQueue, &blackbox_data, 0) == pdPASS) {
+            blackbox_updated = true;
+        }
+        if (xQueueReceive(EjectionQueue, &ejection_data, 0) == pdPASS) {
+            ejection_updated = true;
+        }
+
+        if (blackbox_updated || ejection_updated) {
             sd.setData(blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.maxG, blackbox_data.baro, gpsData, ejection_data.eject_type); // setData 함수를 구조체를 받도록 수정 필요
             sd.write_data();
 
@@ -221,16 +237,16 @@ void SRG(void *pvParameters)
             char packet[100];
             int packet_len = 0;
 
-            if(gps.is_updated) {
+            if(gps.is_updated()) {
                 packet_len = payload.get_imu_gps_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, gpsData, ejection_data.eject_type); // get...packet 함수를 구조체를 받도록 수정 필요
             }
             else{
-                packet_len = payload.get_imu_gps_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, ejection_data.eject_type); // get...packet 함수를 구조체를 받도록 수정 필요
+                packet_len = payload.get_imu_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, ejection_data.eject_type); // get...packet 함수를 구조체를 받도록 수정 필요
             }
             rf.transmit_packet(packet, packet_len);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(200)); // 5Hz 유지
+        vTaskDelay(pdMS_TO_TICKS(150)); // 5Hz 유지
     }
 }
 
