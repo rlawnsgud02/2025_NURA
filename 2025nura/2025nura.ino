@@ -54,6 +54,7 @@ ejection chute(CHUTE, CH5, false); // 사출 객체 생성
 bool sd_init = false;
 bool set_launch_time = false;
 
+
 struct ControlData_t{
   float yaw;
 };
