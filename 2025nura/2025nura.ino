@@ -52,9 +52,10 @@ Packet payload;
 ejection chute(CHUTE, CH5, false); // 사출 객체 생성
 
 bool sd_init = false;
+bool set_launch_time = false;
 
 struct ControlData_t{
-  float yaw; // 또는 제어에 필요한 roll 값
+  float yaw;
 };
 
 struct BlackBoxData_t{
@@ -84,6 +85,12 @@ void FlightControl(void *pvParameters);
 void ATTALT(void *pvParameters);
 void Parachute(void *pvParameters);
 void SRG(void *pvParameters);
+
+
+// TaskHandle_t task1; 
+// TaskHandle_t task2; 
+// TaskHandle_t task3; 
+// TaskHandle_t task4; 
 
 void setup()
 {
@@ -119,22 +126,49 @@ void setup()
     EjectionQueue = xQueueCreate(3, sizeof(EjectionData_t));
 
     // RTOS 설정. Function, Name, Stack Size, Parameter, Priority, Handle, Core
-    xTaskCreatePinnedToCore(FlightControl, "Control Loop", 4096, NULL, 3, NULL, 1);
-    xTaskCreatePinnedToCore(ATTALT, "IMU, Barometric Loop", 4096, NULL, 2, NULL, 1);
-    xTaskCreatePinnedToCore(Parachute, "Chute Ejcetion Loop", 4096, NULL, 2, NULL, 0);
-    xTaskCreatePinnedToCore(SRG, "SD, RF, GPS LETSGO", 4096, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(FlightControl, "Control Loop", 4096, NULL, 3, &task1, 1);
+    xTaskCreatePinnedToCore(ATTALT, "IMU, Barometric Loop", 4096, NULL, 2, &task2, 1);
+    xTaskCreatePinnedToCore(Parachute, "Chute Ejcetion Loop", 4096, NULL, 2, &task3, 0);
+    xTaskCreatePinnedToCore(SRG, "SD, RF, GPS LETSGO", 5120, NULL, 1, &task4, 0);
+    // xTaskCreatePinnedToCore(printWatermark, "Watermark", 2048, NULL, 1, NULL, 0);
 
     Serial.print("Total Heap Size (RAM): ");
     Serial.print(ESP.getHeapSize()); Serial.println(" bytes");  Serial.print("Initial Free Heap Size: ");
-  Serial.print(ESP.getFreeHeap());
-  Serial.println(" bytes");Serial.print("Initial Minimum Free Heap Size: ");
-  Serial.print(ESP.getMinFreeHeap());
-  Serial.println(" bytes");
-  Serial.println("----------------------------------------");
+    Serial.print(ESP.getFreeHeap());
+    Serial.println(" bytes");Serial.print("Initial Minimum Free Heap Size: ");
+    Serial.print(ESP.getMinFreeHeap());
+    Serial.println(" bytes");
+    Serial.println("----------------------------------------");
 
     Serial.println("-----| START! |-----");
     rf.print("Avionics Ready!");
 }
+
+// void printWatermark(void *pvParameters){
+//     while(1){
+//         delay(2000);
+//         Serial.print("TASK: ");
+//         Serial.print(pcTaskGetName(task1)); // Get task name with handler
+//         Serial.print(", High Watermark: ");
+//         Serial.print(uxTaskGetStackHighWaterMark(task1));
+//         Serial.println();
+//         Serial.print("TASK: ");
+//         Serial.print(pcTaskGetName(task2)); // Get task name with handler
+//         Serial.print(", High Watermark: ");
+//         Serial.print(uxTaskGetStackHighWaterMark(task2));
+//         Serial.println();
+//         Serial.print("TASK: ");
+//         Serial.print(pcTaskGetName(task3)); // Get task name with handler
+//         Serial.print(", High Watermark: ");
+//         Serial.print(uxTaskGetStackHighWaterMark(task3));
+//         Serial.println();
+//         Serial.print("TASK: ");
+//         Serial.print(pcTaskGetName(task4)); // Get task name with handler
+//         Serial.print(", High Watermark: ");
+//         Serial.print(uxTaskGetStackHighWaterMark(task4));
+//         Serial.println();
+//     }
+// }
 
 void FlightControl(void *pvParameters)
 {
@@ -205,6 +239,10 @@ void Parachute(void *pvParameters)
         if (xQueueReceive(ParachuteQueue, &parachute_data, portMAX_DELAY) == pdPASS) { // 새 데이터가 올 때까지 무한정 대기
             // if(digitalRead(SAFETY_PIN) == LOW) { // 1차 안전장치
             //     if(digitalRead(LAUNCH_PIN) == LOW) { // 2차 안전장치
+                        if (!set_launch_time) {
+                            chute.set_launch_time(parachute_data.timestamp);
+                            set_launch_time = true;
+                        }
                         ejection_data.eject_type = chute.eject(sqrt(pow(parachute_data.roll, 2) + pow(parachute_data.pitch, 2)), parachute_data.altitude, parachute_data.timestamp, 0); // 0은 메시지 타입. 필요시 변경 가능
                         xQueueSend(EjectionQueue, &ejection_data, pdMS_TO_TICKS(5));
                 // }
@@ -253,19 +291,19 @@ void SRG(void *pvParameters)
             }
             rf.transmit_packet(packet, packet_len);
         }
-
         vTaskDelay(pdMS_TO_TICKS(150)); // 5Hz 유지
     }
 }
 
 void loop() {
-  Serial.print("Current Free Heap: ");
-  Serial.print(ESP.getFreeHeap());
-  Serial.print(" bytes  |  ");
+    // ESP32 남은 메모리 용량 확인용...
+    // Serial.print("Current Free Heap: ");
+    // Serial.print(ESP.getFreeHeap());
+    // Serial.print(" bytes  |  ");
 
-  Serial.print("Minimum Free Heap since boot: ");
-  Serial.print(ESP.getMinFreeHeap());
-  Serial.println(" bytes");
+    // Serial.print("Minimum Free Heap since boot: ");
+    // Serial.print(ESP.getMinFreeHeap());
+    // Serial.println(" bytes");
 
-  delay(5000);
+    // delay(5000);
 }
