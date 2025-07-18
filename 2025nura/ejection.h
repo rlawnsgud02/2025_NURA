@@ -31,6 +31,7 @@ private:
     double max_avg_alt;
     double avg_alt;
     uint32_t timer;
+    uint32_t Launch_time;
 
     uint8_t servo_frequency;
     uint8_t pwm_bits;
@@ -50,6 +51,8 @@ public:
 
     int eject(float anglegro, double alt, uint32_t time, int8_t msg = 0);
     void servo_init();
+
+    void set_launch_time(uint32_t time);
 };
 
 #endif

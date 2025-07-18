@@ -52,6 +52,8 @@ Packet payload;
 ejection chute(CHUTE, CH5, false); // 사출 객체 생성
 
 bool sd_init = false;
+bool set_launch_time = false;
+
 
 struct ControlData_t{
   float yaw; // 또는 제어에 필요한 roll 값
@@ -205,6 +207,10 @@ void Parachute(void *pvParameters)
         if (xQueueReceive(ParachuteQueue, &parachute_data, portMAX_DELAY) == pdPASS) { // 새 데이터가 올 때까지 무한정 대기
             // if(digitalRead(SAFETY_PIN) == LOW) { // 1차 안전장치
             //     if(digitalRead(LAUNCH_PIN) == LOW) { // 2차 안전장치
+                        if (!set_launch_time) {
+                            chute.set_launch_time(parachute_data.timestamp);
+                            set_launch_time = true;
+                        }
                         ejection_data.eject_type = chute.eject(sqrt(pow(parachute_data.roll, 2) + pow(parachute_data.pitch, 2)), parachute_data.altitude, parachute_data.timestamp, 0); // 0은 메시지 타입. 필요시 변경 가능
                         xQueueSend(EjectionQueue, &ejection_data, pdMS_TO_TICKS(5));
                 // }

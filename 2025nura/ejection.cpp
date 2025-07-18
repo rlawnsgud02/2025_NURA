@@ -66,7 +66,8 @@ ejection::ejection(int servopin, int8_t ch, int8_t safetypin, int8_t launchpin, 
 
 // 임시 테스트용
 ejection::ejection(int8_t servopin, int8_t ch, bool is_ejected): servopin(servopin), CH(ch), is_ejected(is_ejected) {
-    type = NO_EJECTION; count = 0; anglegro = 0; max_avg_alt = 0; avg_alt = 0; timer = 0; servo_frequency = 50; pwm_bits = 12; max_duty = (1 << pwm_bits) - 1;
+    type = NO_EJECTION; count = 0; anglegro = 0; max_avg_alt = 0; avg_alt = 0; timer = 0; 
+    launch_time = 0; servo_frequency = 50; pwm_bits = 12; max_duty = (1 << pwm_bits) - 1;
 }
 
 void ejection::servo_init() {
@@ -125,13 +126,21 @@ int ejection::eject(float anglegro, double alt, uint32_t time, int8_t msg) { // 
 */
     timer = time;
 
-    if (timer % 1000 < 200) {
-        is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_gyro(anglegro) || eject_alt(alt) || eject_time());
+    if (type == NO_EJECTION) {
+        // if (timer % 1000 < 200) {
+        //     is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_gyro(anglegro) || eject_alt(alt) || eject_time());
+        // }
+        // else {
+        //     is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_alt(alt) || eject_time());
+        // }
+        if (timer > 3500 + Launch_time) {
+            is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_gyro(anglegro) || eject_alt(alt) || eject_time());
+        }
+        return type;
     }
     else {
-        is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_alt(alt) || eject_time());
+        return type;
     }
-    return type;
 }
 
 
@@ -152,4 +161,8 @@ void ejection::servo_write(int pulse) {
     uint32_t duty = (uint32_t)(((double)pulse / period) * (double)max_duty);
 
     ledcWrite(CH, duty);
+}
+
+void ejection::set_launch_time(uint32_t time) {
+    Launch_time = time;
 }
