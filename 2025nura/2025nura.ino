@@ -40,6 +40,10 @@
 #define CH4 3 // Canard 4
 #define CH5 4 // Ejection Servo
 
+#define Kp 0.5 
+#define Ki 0.1
+#define Kd 0.05
+
 // 객체 생성
 // SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
 // UbxGPS gps(gpsSerial);
@@ -51,9 +55,13 @@ NMT rf(Serial1, RF_RX, RF_TX, 9600);
 Packet payload;
 ejection chute(CHUTE, CH5, false); // 사출 객체 생성
 
+// 서보 선언
+const int SERVO_FREQUENCY = 50;
+const int PWM_RESOLUTION_BITS = 12;
+const uint32_t MAX_DUTY_CYCLE = (1 << PWM_RESOLUTION_BITS) - 1;
+
 bool sd_init = false;
 bool set_launch_time = false;
-
 
 struct ControlData_t{
   float yaw;
@@ -87,11 +95,16 @@ void ATTALT(void *pvParameters);
 void Parachute(void *pvParameters);
 void SRG(void *pvParameters);
 
+// TaskHandle_t task1;
+// TaskHandle_t task2;
+// TaskHandle_t task3;
+// TaskHandle_t task4;
 
-// TaskHandle_t task1; 
-// TaskHandle_t task2; 
-// TaskHandle_t task3; 
-// TaskHandle_t task4; 
+void servo_write_us(int channel, int pulse_us) {
+    double period_us = 1000000.0 / SERVO_FREQUENCY;
+    uint32_t duty = (uint32_t)(((double)pulse_us / period_us) * (double)MAX_DUTY_CYCLE);
+    ledcWrite(channel, duty);
+}
 
 void setup()
 {
@@ -112,6 +125,19 @@ void setup()
     Baro.begin_I2C(BMP3XX_DEFAULT_ADDRESS, BARO_SDA, BARO_SCL);
     delay(500);
 
+    ledcSetup(CH1, SERVO_FREQUENCY, PWM_RESOLUTION_BITS);
+    ledcSetup(CH2, SERVO_FREQUENCY, PWM_RESOLUTION_BITS);
+    ledcSetup(CH3, SERVO_FREQUENCY, PWM_RESOLUTION_BITS);
+    ledcSetup(CH4, SERVO_FREQUENCY, PWM_RESOLUTION_BITS);
+    ledcAttachPin(CANARD1, CH1);
+    ledcAttachPin(CANARD2, CH2);
+    ledcAttachPin(CANARD3, CH3);
+    ledcAttachPin(CANARD4, CH4);
+    servo_write_us(CH1, 1500);
+    servo_write_us(CH2, 1500);
+    servo_write_us(CH3, 1500);
+    servo_write_us(CH4, 1500);
+
     chute.servo_init();
     rf.print("eject servo Ready!");
 
@@ -127,19 +153,11 @@ void setup()
     EjectionQueue = xQueueCreate(3, sizeof(EjectionData_t));
 
     // RTOS 설정. Function, Name, Stack Size, Parameter, Priority, Handle, Core
-    xTaskCreatePinnedToCore(FlightControl, "Control Loop", 4096, NULL, 3, &task1, 1);
-    xTaskCreatePinnedToCore(ATTALT, "IMU, Barometric Loop", 4096, NULL, 2, &task2, 1);
-    xTaskCreatePinnedToCore(Parachute, "Chute Ejcetion Loop", 4096, NULL, 2, &task3, 0);
-    xTaskCreatePinnedToCore(SRG, "SD, RF, GPS LETSGO", 5120, NULL, 1, &task4, 0);
-    // xTaskCreatePinnedToCore(printWatermark, "Watermark", 2048, NULL, 1, NULL, 0);
-
-    Serial.print("Total Heap Size (RAM): ");
-    Serial.print(ESP.getHeapSize()); Serial.println(" bytes");  Serial.print("Initial Free Heap Size: ");
-    Serial.print(ESP.getFreeHeap());
-    Serial.println(" bytes");Serial.print("Initial Minimum Free Heap Size: ");
-    Serial.print(ESP.getMinFreeHeap());
-    Serial.println(" bytes");
-    Serial.println("----------------------------------------");
+    xTaskCreatePinnedToCore(FlightControl, "Control Loop", 4096, NULL, 3, NULL, 1);
+    xTaskCreatePinnedToCore(ATTALT, "IMU, Barometric Loop", 4096, NULL, 2, NULL, 1);
+    xTaskCreatePinnedToCore(Parachute, "Chute Ejcetion Loop", 4096, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(SRG, "SD, RF, GPS LETSGO", 5120, NULL, 1, NULL, 0);
+    // xTaskCreatePinnedToCore(printWatermark, "Watermark", 2048, NULL, 1, NULL, 0); // 스레드별 메모리 사용량 확인
 
     Serial.println("-----| START! |-----");
     rf.print("Avionics Ready!");
@@ -171,13 +189,57 @@ void setup()
 //     }
 // }
 
+// PWM 1us 당 0,09도 회전
 void FlightControl(void *pvParameters)
 {
     ControlData_t control_data;
+
+    double setpoint = 90.0; 
+    double integral = 0.0;
+    double previous_error = 0.0;
+    uint32_t last_time = 0;
+
+    last_time = micros();
+    
+    vTaskDelay(pdMS_TO_TICKS(5000)); // SD카드를 위해서 정지
+
+
     while(true) {
         // 제어 큐에서 데이터를 받아옴. 10ms 동안 데이터가 없으면 그냥 넘어감
         if (xQueueReceive(ControlQueue, &control_data, pdMS_TO_TICKS(10)) == pdPASS) {
-            // 여기에 parachute_data.yaw 값을 이용한 카나드 제어 로직 구현
+            uint32_t current_time = micros();
+            double dt = (current_time - last_time) / 1000000.0;
+            last_time = current_time;
+
+            // P 제어
+            double current_yaw = control_data.yaw;
+            double error = setpoint - current_yaw;
+
+            // I 제어
+            integral += error * dt;
+            integral = constrain(integral, -100, 100); // 파라미터(I 범위) 튜닝 필요.
+
+            // D 제어
+            double derivative = (error - previous_error) / dt;
+
+            // PID 제어
+            double pid_output = (Kp * error) + (Ki * integral) + (Kd * derivative);
+
+            // PD 제어
+            // double pid_output = (Kp * error) + (Kd * derivative);
+
+
+            previous_error = error;
+
+            // 서보 제어값 연산
+            double control_angle = constrain(pid_output, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
+            servo_write_us(CH1, 1500 + control_angle);
+            servo_write_us(CH2, 1500 + control_angle);
+            servo_write_us(CH3, 1500 + control_angle);
+            servo_write_us(CH4, 1500 + control_angle);
+
+            // Serial.print("Control Angle: "); Serial.print(control_angle);
+            // Serial.print(" | PID Output: "); Serial.println(pid_output);
         }
             // vTaskDelay를 별도로 두지 않음. xQueueReceive가 최대 10ms 대기하므로 100Hz 주기가 맞춰짐.
     }
@@ -254,10 +316,10 @@ void Parachute(void *pvParameters)
 
 void SRG(void *pvParameters)
 {
-    if(!sd_init){
+    // if(!sd_init){
         sd.initialize();
         sd_init = true;
-    }
+    // }
 
     BlackBoxData_t blackbox_data;
     GpsData gpsData;
