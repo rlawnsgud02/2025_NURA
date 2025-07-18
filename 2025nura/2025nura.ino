@@ -60,7 +60,7 @@ const int SERVO_FREQUENCY = 50;
 const int PWM_RESOLUTION_BITS = 12;
 const uint32_t MAX_DUTY_CYCLE = (1 << PWM_RESOLUTION_BITS) - 1;
 
-bool sd_init = false;
+// bool sd_init = false;
 bool set_launch_time = false;
 
 struct ControlData_t{
@@ -129,14 +129,11 @@ void setup()
     ledcSetup(CH2, SERVO_FREQUENCY, PWM_RESOLUTION_BITS);
     ledcSetup(CH3, SERVO_FREQUENCY, PWM_RESOLUTION_BITS);
     ledcSetup(CH4, SERVO_FREQUENCY, PWM_RESOLUTION_BITS);
+
     ledcAttachPin(CANARD1, CH1);
     ledcAttachPin(CANARD2, CH2);
     ledcAttachPin(CANARD3, CH3);
     ledcAttachPin(CANARD4, CH4);
-    servo_write_us(CH1, 1500);
-    servo_write_us(CH2, 1500);
-    servo_write_us(CH3, 1500);
-    servo_write_us(CH4, 1500);
 
     chute.servo_init();
     rf.print("eject servo Ready!");
@@ -201,7 +198,12 @@ void FlightControl(void *pvParameters)
 
     last_time = micros();
     
-    vTaskDelay(pdMS_TO_TICKS(5000)); // SD카드를 위해서 정지
+    servo_write_us(CH1, 1500);
+    servo_write_us(CH2, 1500);
+    servo_write_us(CH3, 1500);
+    servo_write_us(CH4, 1500);
+
+    // vTaskDelay(pdMS_TO_TICKS(5000)); // SD카드를 위해서 정지
 
 
     while(true) {
@@ -227,7 +229,6 @@ void FlightControl(void *pvParameters)
 
             // PD 제어
             // double pid_output = (Kp * error) + (Kd * derivative);
-
 
             previous_error = error;
 
@@ -316,10 +317,7 @@ void Parachute(void *pvParameters)
 
 void SRG(void *pvParameters)
 {
-    // if(!sd_init){
-        sd.initialize();
-        sd_init = true;
-    // }
+    sd.initialize();
 
     BlackBoxData_t blackbox_data;
     GpsData gpsData;
