@@ -67,7 +67,7 @@ ejection::ejection(int servopin, int8_t ch, int8_t safetypin, int8_t launchpin, 
 // 임시 테스트용
 ejection::ejection(int8_t servopin, int8_t ch, bool is_ejected): servopin(servopin), CH(ch), is_ejected(is_ejected) {
     type = NO_EJECTION; count = 0; anglegro = 0; max_avg_alt = 0; avg_alt = 0; timer = 0; 
-    launch_time = 0; servo_frequency = 50; pwm_bits = 12; max_duty = (1 << pwm_bits) - 1;
+    Launch_time = 0; servo_frequency = 50; pwm_bits = 12; max_duty = (1 << pwm_bits) - 1;
 }
 
 void ejection::servo_init() {
