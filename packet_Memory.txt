@@ -12,10 +12,11 @@ P_alt -> 2자리 / Max 350 -> uint16_t // *수신부에서 40,000 이상 값은 
 [GPS]
 Lon -> 7자리 / uint32_t -> 4Byte
 Lat -> 7자리 / uint32_t -> 4Byte
-Alt -> 2자리 / uint16_t -> 2Byte
+Alt -> -자리 / uint32_t -> 4Byte
 Vn -> 2자리 / int16_t -> 2Byte
 VE -> 2자리 / int16_t -> 2Byte
 VD -> 2자리 / int16_t -> 2Byte
 fix -> 0, 1, 2, 3 -> uint8_t -> 1Byte
 
 Chute -> 0, 1, 2, 3 / uint8_t -> 1Byte
+

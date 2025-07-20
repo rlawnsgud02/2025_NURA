@@ -314,7 +314,8 @@ void Parachute(void *pvParameters)
         }
     }
 }
-
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! payload 과정에 launch 를 추가해야 함 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! payload 과정에 launch 를 추가해야 함 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 void SRG(void *pvParameters)
 {
     sd.initialize();
@@ -368,3 +369,133 @@ void loop() {
 
     // delay(5000);
 }
+
+//////////////////////////////////////////////////// 이쪽 코드를 확인해서 고민해 보세요 - 용진 ////////////////////////////////////////////////////
+/*
+void SRG(void *pvParameters)
+{
+    sd.initialize();
+
+    // 처리할 데이터를 담을 지역 변수
+    BlackBoxData_t blackbox_data;
+    GpsData gpsData;
+    EjectionData_t ejection_data; // 가장 마지막 사출 상태를 저장
+    
+    // launch 핀 상태 추가
+    uint8_t launch_status = 0; // 0: 미발사, 1: 발사
+
+    // EjectionData_t는 생성자에서 eject_type이 0으로 초기화되므로,
+    // 별도 초기화 없이 바로 사용 가능합니다.
+
+    while(true) {
+        // 1. BlackBoxQueue에 데이터가 올 때까지 대기 (가장 핵심적인 변경)
+        // 이 함수가 리턴되면, blackbox_data는 항상 최신 데이터임이 보장됩니다.
+        if (xQueueReceive(BlackBoxQueue, &blackbox_data, portMAX_DELAY) == pdPASS) {
+            
+            // 2. 다른 데이터 소스들은 비차단(non-blocking)으로 확인하여 최신 정보로 업데이트
+            gps.get_gps_data(gpsData);
+            xQueueReceive(EjectionQueue, &ejection_data, 0); // 새 사출 정보가 있으면 업데이트, 없으면 그냥 넘어감
+            launch_status = digitalRead(LAUNCH_PIN) == LOW ? 1 : 0; // 현재 발사 상태 확인
+
+            // 3. SD 카드에 데이터 기록
+            sd.setData(blackbox_data, gpsData, ejection_data.eject_type, launch_status); // setData 함수를 구조체를 받도록 수정
+            sd.write_data();
+
+            // 4. RF로 데이터 전송
+            char packet[100];
+            int packet_len = 0;
+
+            if (gps.is_updated()) {
+                // 구조체와 필요한 변수만 넘겨주도록 함수 수정
+                packet_len = payload.get_imu_gps_packet(packet, blackbox_data, gpsData, ejection_data.eject_type, launch_status);
+            } else {
+                packet_len = payload.get_imu_packet(packet, blackbox_data, ejection_data.eject_type, launch_status);
+            }
+            rf.transmit_packet(packet, packet_len);
+        }
+        // vTaskDelay는 필요 없음. 루프의 주기는 BlackBoxQueue의 데이터 수신 속도(100Hz)에 의해 자연스럽게 결정됨.
+    }
+}
+*/
+////////////////////////////////////////// 반영한다면 packet_2025.cpp 파일에서 수정할 부분 //////////////////////////////////////////
+/*
+// packet_2025.cpp 파일에 구현될 함수의 예시
+
+int Packet::get_imu_packet(char* packet, const BlackBoxData_t& b_data, uint8_t ejection, uint8_t launch)
+{
+    // 헤더와 ID, 길이 등 기본 정보 설정
+    buf[2] = static_cast<uint8_t>(Packet::MsgID::IMU);
+    buf[3] = sizeof(OptimizedImuPayload) + 4; // payload_size(34) + timestamp_size(4)
+    
+    // 1. BlackBoxData_t에서 타임스탬프를 가져와 먼저 추가
+    memcpy(buf + 4, &b_data.timestamp, 4);
+
+    // 2. 페이로드 구조체 인스턴스 생성
+    OptimizedImuPayload payload;
+
+    // 3. BlackBoxData_t의 데이터를 하나씩 변환하며 OptimizedImuPayload에 채워넣기
+    for (int i = 0; i < 3; ++i) {
+        payload.acc[i]   = static_cast<int16_t>(b_data.acc[i] * 100.0f);
+        payload.gyro[i]  = static_cast<int16_t>(b_data.gyro[i] * 100.0f);
+        payload.mag[i]   = static_cast<int16_t>(b_data.mag[i] * 10.0f);
+        payload.euler[i] = static_cast<int16_t>(b_data.RPY[i] * 100.0f); // RPY를 euler로
+    }
+    payload.temperature = static_cast<uint16_t>(b_data.baro[0] * 100.0f); // baro[0]을 temperature로
+    payload.pressure    = static_cast<uint32_t>(b_data.baro[1] * 100.0f); // baro[1]을 pressure로
+    payload.P_alt       = static_cast<uint16_t>(b_data.baro[2] * 100.0f); // baro[2]를 P_alt로
+    
+    payload.ejection = ejection;
+    payload.launch = launch;
+
+    // 4. 완성된 페이로드 구조체를 버퍼에 복사
+    memcpy(buf + 8, &payload, sizeof(OptimizedImuPayload));
+
+    // 체크섬 추가 및 패킷 완성
+    add_chksum();
+    int final_size = sizeof(OptimizedImuPayload) + 4 + 5;
+    memcpy(packet, buf, final_size);
+    return final_size;
+}
+*/
+/*
+네, 현재처럼 하나하나 인자로 넘겨주는 방식도 전혀 문제없습니다. 최종적으로 만들어지는 패킷은 두 방법 모두 완전히 동일합니다.
+
+리팩토링(구조체로 전달하는 방식) 제안은 성능 향상보다는 코드 관리의 효율성을 위한 것입니다.
+
+두 방식의 차이점을 간단히 요약하면 다음과 같습니다.
+
+## 기능 및 성능
+거의 차이가 없습니다.
+
+두 방법 모두 컴파일되고 나면 결국 같은 기계어 코드로 번역되며, 최종적으로 생성되는 패킷의 내용도 100% 동일합니다. 인자를 여러 개 넘기는 것과 구조체 참조를 하나 넘기는 것의 성능 차이는 무시할 수 있을 정도로 미미합니다.
+
+## 코드 관리 (가독성 및 유지보수성)
+여기서 큰 차이가 발생합니다.
+
+현재 방식 (하나씩 전달)
+packet_len = payload.get_imu_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, ejection_data.eject_type, launch_status);
+
+장점: 함수의 동작을 위해 어떤 데이터가 필요한지 직관적으로 알 수 있습니다.
+
+단점:
+
+함수 호출 코드가 매우 길고 복잡해 보입니다.
+
+나중에 maxG 같은 새로운 데이터를 패킷에 추가하려면, 함수 선언부(h파일), 정의부(cpp파일), 호출부(ino파일) 세 군데를 모두 수정해야 합니다.
+
+리팩토링 방식 (구조체로 전달)
+packet_len = payload.get_imu_packet(packet, blackbox_data, ejection_data.eject_type, launch_status);
+
+장점:
+
+함수 호출 코드가 매우 간결하고 깔끔합니다.
+
+나중에 maxG 데이터를 추가하고 싶을 때, 함수 내부 로직만 수정하면 됩니다. 함수 선언부나 호출부는 전혀 건드릴 필요가 없습니다.
+
+단점: 함수 내부를 보지 않으면 blackbox_data의 어떤 멤버가 사용되는지 바로 알기 어렵습니다.
+
+## 결론
+지금 당장 프로그램을 실행하는 데에는 현재 방식이 아무런 문제가 없습니다.
+
+다만, 앞으로 이 코드를 계속 발전시키고 새로운 기능을 추가하는 등 장기적으로 유지보수할 계획이라면, 구조체로 전달하는 방식이 실수를 줄이고 작업 효율을 크게 높여주기 때문에 권장되는 스타일입니다.
+*/
