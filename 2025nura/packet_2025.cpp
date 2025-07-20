@@ -47,7 +47,7 @@ int Packet::get_imu_packet(char * packet, uint32_t timestamp, float * acc, float
     
     payload.ejection = static_cast<uint8_t>(ejection);
 
-    payload.launch = launch;
+    payload.launch = static_cast<uint8_t>(launch);
 
     memcpy(buf + 8, &payload, sizeof(OptimizedImuPayload)); // Payload 구조체에 모두 저장 후 한 번에 memcpy
     // buf[0] = HEADER1; buf[1] = HEADER2; buf[2] = MsgID; buf[3] = Length(= payload_size 패킷의 크기) -> 33; buf[4 ~ 7] = timestamp;
@@ -116,7 +116,7 @@ int Packet::get_imu_gps_packet(char* packet, uint32_t timestamp, float* acc, flo
 
     payload.ejection = static_cast<uint8_t>(ejection);
     //
-    payload.launch = launch;
+    payload.launch = static_cast<uint8_t>(launch);
 
     memcpy(buf + 8, &payload, sizeof(OptimizedImuGpsPayload)); // Payload 구조체에 모두 저장 후 한 번에 memcpy
     // buf[0] = HEADER1; buf[1] = HEADER2; buf[2] = MsgID; buf[3] = Length(= payload_size 패킷의 크기) -> 52; buf[4 ~ 7] = timestamp;
