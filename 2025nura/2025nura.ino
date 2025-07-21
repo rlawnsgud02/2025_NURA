@@ -40,9 +40,9 @@
 #define CH4 3 // Canard 4
 #define CH5 4 // Ejection Servo
 
-#define Kp 0.5 
+#define Kp 4
 #define Ki 0.1
-#define Kd 0.05
+#define Kd 1
 
 // 객체 생성
 // SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
@@ -82,7 +82,8 @@ struct ParachuteData_t{
 
 struct EjectionData_t{
     int8_t eject_type;
-    EjectionData_t(): eject_type(0){} // 생성자를 통한 초기화
+    int8_t launch_status; // 발사 상태 (0: 미발사, 1: 발사)
+    EjectionData_t(): eject_type(0), launch_status(0) {} // 생성자를 통한 초기화
 };
 
 QueueHandle_t ControlQueue;
@@ -203,7 +204,7 @@ void FlightControl(void *pvParameters)
     servo_write_us(CH3, 1500);
     servo_write_us(CH4, 1500);
 
-    // vTaskDelay(pdMS_TO_TICKS(5000)); // SD카드를 위해서 정지
+    // vTaskDelay(pdMS_TO_TICKS(7000)); // SD카드를 위해서 정지
 
 
     while(true) {
@@ -211,6 +212,9 @@ void FlightControl(void *pvParameters)
         if (xQueueReceive(ControlQueue, &control_data, pdMS_TO_TICKS(10)) == pdPASS) {
             uint32_t current_time = micros();
             double dt = (current_time - last_time) / 1000000.0;
+            if (dt <= 0) {
+                dt = 0.01; // 최소 10ms로 설정
+            }
             last_time = current_time;
 
             // P 제어
@@ -219,16 +223,16 @@ void FlightControl(void *pvParameters)
 
             // I 제어
             integral += error * dt;
-            integral = constrain(integral, -100, 100); // 파라미터(I 범위) 튜닝 필요.
+            integral = constrain(integral, -100, 100); // 파라미터(I 범위) 튜닝 필요. -> PD 제어를 사용하므로 일단 패스
 
             // D 제어
             double derivative = (error - previous_error) / dt;
 
             // PID 제어
-            double pid_output = (Kp * error) + (Ki * integral) + (Kd * derivative);
+            // double pid_output = (Kp * error) + (Ki * integral) + (Kd * derivative);
 
             // PD 제어
-            // double pid_output = (Kp * error) + (Kd * derivative);
+            double pid_output = (Kp * error) + (Kd * derivative);
 
             previous_error = error;
 
@@ -239,7 +243,7 @@ void FlightControl(void *pvParameters)
             servo_write_us(CH3, 1500 + control_angle);
             servo_write_us(CH4, 1500 + control_angle);
 
-            // Serial.print("Control Angle: "); Serial.print(control_angle);
+            Serial.print("Control Angle: "); Serial.println(control_angle);
             // Serial.print(" | PID Output: "); Serial.println(pid_output);
         }
             // vTaskDelay를 별도로 두지 않음. xQueueReceive가 최대 10ms 대기하므로 100Hz 주기가 맞춰짐.
@@ -304,8 +308,9 @@ void Parachute(void *pvParameters)
             // if(digitalRead(SAFETY_PIN) == LOW) { // 1차 안전장치
             //     if(digitalRead(LAUNCH_PIN) == LOW) { // 2차 안전장치
                         if (!set_launch_time) {
-                            chute.set_launch_time(parachute_data.timestamp);
+                            ejection_data.launch_status = 1;
                             set_launch_time = true;
+                            chute.set_launch_time(parachute_data.timestamp);
                         }
                         ejection_data.eject_type = chute.eject(sqrt(pow(parachute_data.roll, 2) + pow(parachute_data.pitch, 2)), parachute_data.altitude, parachute_data.timestamp, 0); // 0은 메시지 타입. 필요시 변경 가능
                         xQueueSend(EjectionQueue, &ejection_data, pdMS_TO_TICKS(5));
@@ -338,7 +343,7 @@ void SRG(void *pvParameters)
         }
 
         if (blackbox_updated || ejection_updated) {
-            sd.setData(blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.maxG, blackbox_data.baro, gpsData, ejection_data.eject_type); // setData 함수를 구조체를 받도록 수정 필요
+            sd.setData(blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.maxG, blackbox_data.baro, gpsData, ejection_data.eject_type, ejection_data.launch_status); // setData 함수를 구조체를 받도록 수정 필요
             sd.write_data();
 
             // RF로 데이터 전송
@@ -346,7 +351,7 @@ void SRG(void *pvParameters)
             int packet_len = 0;
 
             if(gps.is_updated()) {
-                packet_len = payload.get_imu_gps_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, gpsData, ejection_data.eject_type); // get...packet 함수를 구조체를 받도록 수정 필요
+                packet_len = payload.get_imu_gps_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, gpsData, ejection_data.eject_type, ejection_data.launch_status); // get...packet 함수를 구조체를 받도록 수정 필요
             }
             else{
                 packet_len = payload.get_imu_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, ejection_data.eject_type); // get...packet 함수를 구조체를 받도록 수정 필요
@@ -370,53 +375,6 @@ void loop() {
     // delay(5000);
 }
 
-//////////////////////////////////////////////////// 이쪽 코드를 확인해서 고민해 보세요 - 용진 ////////////////////////////////////////////////////
-/*
-void SRG(void *pvParameters)
-{
-    sd.initialize();
-
-    // 처리할 데이터를 담을 지역 변수
-    BlackBoxData_t blackbox_data;
-    GpsData gpsData;
-    EjectionData_t ejection_data; // 가장 마지막 사출 상태를 저장
-    
-    // launch 핀 상태 추가
-    uint8_t launch_status = 0; // 0: 미발사, 1: 발사
-
-    // EjectionData_t는 생성자에서 eject_type이 0으로 초기화되므로,
-    // 별도 초기화 없이 바로 사용 가능합니다.
-
-    while(true) {
-        // 1. BlackBoxQueue에 데이터가 올 때까지 대기 (가장 핵심적인 변경)
-        // 이 함수가 리턴되면, blackbox_data는 항상 최신 데이터임이 보장됩니다.
-        if (xQueueReceive(BlackBoxQueue, &blackbox_data, portMAX_DELAY) == pdPASS) {
-            
-            // 2. 다른 데이터 소스들은 비차단(non-blocking)으로 확인하여 최신 정보로 업데이트
-            gps.get_gps_data(gpsData);
-            xQueueReceive(EjectionQueue, &ejection_data, 0); // 새 사출 정보가 있으면 업데이트, 없으면 그냥 넘어감
-            launch_status = digitalRead(LAUNCH_PIN) == LOW ? 1 : 0; // 현재 발사 상태 확인
-
-            // 3. SD 카드에 데이터 기록
-            sd.setData(blackbox_data, gpsData, ejection_data.eject_type, launch_status); // setData 함수를 구조체를 받도록 수정
-            sd.write_data();
-
-            // 4. RF로 데이터 전송
-            char packet[100];
-            int packet_len = 0;
-
-            if (gps.is_updated()) {
-                // 구조체와 필요한 변수만 넘겨주도록 함수 수정
-                packet_len = payload.get_imu_gps_packet(packet, blackbox_data, gpsData, ejection_data.eject_type, launch_status);
-            } else {
-                packet_len = payload.get_imu_packet(packet, blackbox_data, ejection_data.eject_type, launch_status);
-            }
-            rf.transmit_packet(packet, packet_len);
-        }
-        // vTaskDelay는 필요 없음. 루프의 주기는 BlackBoxQueue의 데이터 수신 속도(100Hz)에 의해 자연스럽게 결정됨.
-    }
-}
-*/
 ////////////////////////////////////////// 반영한다면 packet_2025.cpp 파일에서 수정할 부분 //////////////////////////////////////////
 /*
 // packet_2025.cpp 파일에 구현될 함수의 예시
