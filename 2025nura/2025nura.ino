@@ -204,9 +204,6 @@ void FlightControl(void *pvParameters)
     servo_write_us(CH3, 1500);
     servo_write_us(CH4, 1500);
 
-    // vTaskDelay(pdMS_TO_TICKS(7000)); // SD카드를 위해서 정지
-
-
     while(true) {
         // 제어 큐에서 데이터를 받아옴. 10ms 동안 데이터가 없으면 그냥 넘어감
         if (xQueueReceive(ControlQueue, &control_data, pdMS_TO_TICKS(10)) == pdPASS) {
@@ -321,8 +318,7 @@ void Parachute(void *pvParameters)
         }
     }
 }
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! payload 과정에 launch 를 추가해야 함 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! payload 과정에 launch 를 추가해야 함 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 void SRG(void *pvParameters)
 {
     sd.initialize();
@@ -331,40 +327,28 @@ void SRG(void *pvParameters)
     static GpsData gpsData;
     static EjectionData_t ejection_data = {0};
 
-    // bool blackbox_updated = false;
-    // bool ejection_updated = false;
 
     while(true) {
         gps.get_gps_data(gpsData);
 
-        // if (xQueueReceive(BlackBoxQueue, &blackbox_data, 0) == pdPASS) {
-        //     blackbox_updated = true;
-        // }
-        // if (xQueueReceive(EjectionQueue, &ejection_data, 0) == pdPASS) {
-        //     ejection_updated = true;
-        // }
         xQueueReceive(BlackBoxQueue, &blackbox_data, 0);
         xQueueReceive(EjectionQueue, &ejection_data, 0);
 
-        // if (blackbox_updated || ejection_updated) {
-            sd.setData(blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.maxG, blackbox_data.baro, gpsData, ejection_data.eject_type, ejection_data.launch_status); // setData 함수를 구조체를 받도록 수정 필요
-            sd.write_data();
+        sd.setData(blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.maxG, blackbox_data.baro, gpsData, ejection_data.eject_type, ejection_data.launch_status); // setData 함수를 구조체를 받도록 수정 필요
+        sd.write_data();
 
-            // RF로 데이터 전송
-            char packet[100];
-            int packet_len = 0;
+        // RF로 데이터 전송
+        char packet[100];
+        int packet_len = 0;
 
-            if(gps.is_updated()) {
-                packet_len = payload.get_imu_gps_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, gpsData, ejection_data.eject_type, ejection_data.launch_status); // get...packet 함수를 구조체를 받도록 수정 필요
-            }
-            else{
-                packet_len = payload.get_imu_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, ejection_data.eject_type); // get...packet 함수를 구조체를 받도록 수정 필요
-            }
-            rf.transmit_packet(packet, packet_len);
+        if(gps.is_updated()) {
+            packet_len = payload.get_imu_gps_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, gpsData, ejection_data.eject_type, ejection_data.launch_status); // get...packet 함수를 구조체를 받도록 수정 필요
+        }
+        else{
+            packet_len = payload.get_imu_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, ejection_data.eject_type); // get...packet 함수를 구조체를 받도록 수정 필요
+        }
+        rf.transmit_packet(packet, packet_len);
 
-            // blackbox_updated = false;
-            // ejection_updated = false;
-        // }
         vTaskDelay(pdMS_TO_TICKS(100)); // 10Hz 유지
     }
 }
