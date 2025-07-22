@@ -26,7 +26,7 @@ void Packet::add_launch()
 }
 
 
-int Packet::get_imu_packet(char * packet, uint32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float * press, uint8_t ejection, uint8_t launch)
+int Packet::get_imu_packet(char * packet, uint32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float * press, uint8_t ejection)
 {
     buf[2] = static_cast<uint8_t>(Packet::MsgID::IMU);
 
@@ -46,8 +46,6 @@ int Packet::get_imu_packet(char * packet, uint32_t timestamp, float * acc, float
     payload.P_alt = static_cast<uint16_t>(press[2] * 100.0f);
     
     payload.ejection = static_cast<uint8_t>(ejection);
-
-    payload.launch = static_cast<uint8_t>(launch);
 
     memcpy(buf + 8, &payload, sizeof(OptimizedImuPayload)); // Payload 구조체에 모두 저장 후 한 번에 memcpy
     // buf[0] = HEADER1; buf[1] = HEADER2; buf[2] = MsgID; buf[3] = Length(= payload_size 패킷의 크기) -> 33; buf[4 ~ 7] = timestamp;
