@@ -284,9 +284,9 @@ bool BMP390L::set_AltitudeBias() {
     int count = 0;
     Serial.println("\n-----| Setting Altitude Bias |-----\n");
     
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 2000; i++) {
         if (performReading()) {
-            if (i >= 700) { // 조절해보기..?
+            if (i >= 1000) { // 조절해보기..?
                 AltitudeBias += readAltitude(0);
                 count++;
             }

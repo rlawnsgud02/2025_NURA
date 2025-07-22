@@ -123,7 +123,7 @@ public:
     };
 
     Packet();
-    int get_imu_packet(char* packet, uint32_t timestamp, float* acc, float* gyro, float* mag, float* euler, float* press, uint8_t ejection);
+    int get_imu_packet(char* packet, uint32_t timestamp, float* acc, float* gyro, float* mag, float* euler, float* press, uint8_t ejection, uint8_t launch);
     int get_gps_packet(char* packet, uint32_t timestamp, GpsData& gps);
     int get_imu_gps_packet(char* packet, uint32_t timestamp, float* acc, float* gyro, float* mag, float* euler, float* press, GpsData& gps, uint8_t ejection, uint8_t launch);
     void add_launch();
