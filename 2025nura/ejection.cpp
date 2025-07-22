@@ -103,7 +103,7 @@ bool ejection::eject_alt(double alt) {
 }
 
 bool ejection::eject_time() {
-    if (timer >= 9000 + Launch_time) {
+    if (timer >= 12000 + Launch_time) {
         servo_write(MIN);
         type = TIME_EJECTION;
         return true;
@@ -135,14 +135,17 @@ int ejection::eject(float anglegro, double alt, uint32_t time, int8_t msg) { // 
         // }
         if (timer > 3500 + Launch_time) {
             is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_gyro(anglegro) || eject_alt(alt) || eject_time());
-            is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_alt(alt));
+            
+            // 고도사출만 테스트용
+            // is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_alt(alt));
+
+            // 자세 사출만 테스트용
+            // is_ejected = (msg == 1) ? (type = eject_manual(), true) : ((type = 0), eject_gyro(anglegro));
+
         }
+
         return type;
 
-        if(type == ALT_EJECTION)
-        {
-            Serial.println("Alt Ejected!!!!");
-        }
     }
     else {
         return type;

@@ -40,9 +40,9 @@
 #define CH4 3 // Canard 4
 #define CH5 4 // Ejection Servo
 
-#define Kp 4
-#define Ki 0.1
-#define Kd 1
+#define Kp 3
+#define Ki 0.0
+#define Kd 0.1
 
 // 객체 생성
 // SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
@@ -199,14 +199,43 @@ void FlightControl(void *pvParameters)
 
     last_time = micros();
     
+    // 서보 캘리브레이션 결과 아래와 같이 줘야 수직값이다.
     servo_write_us(CH1, 1500);
     servo_write_us(CH2, 1500);
-    servo_write_us(CH3, 1500);
-    servo_write_us(CH4, 1500);
+    servo_write_us(CH3, 1560);
+    servo_write_us(CH4, 1530);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    servo_write_us(CH1, 1000);
+    servo_write_us(CH2, 1000);
+    servo_write_us(CH3, 1000);
+    servo_write_us(CH4, 1000);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    servo_write_us(CH1, 1500);
+    servo_write_us(CH2, 1500);
+    servo_write_us(CH3, 1560);
+    servo_write_us(CH4, 1530);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    servo_write_us(CH1, 2000);
+    servo_write_us(CH2, 2000);
+    servo_write_us(CH3, 2000);
+    servo_write_us(CH4, 2000);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    servo_write_us(CH1, 1500);
+    servo_write_us(CH2, 1500);
+    servo_write_us(CH3, 1560);
+    servo_write_us(CH4, 1530);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    double previous_yaw = 0.0;
+    xQueuePeek(ControlQueue, &control_data, pdMS_TO_TICKS(10));
 
     while(true) {
         // 제어 큐에서 데이터를 받아옴. 10ms 동안 데이터가 없으면 그냥 넘어감
-        if (xQueueReceive(ControlQueue, &control_data, pdMS_TO_TICKS(10)) == pdPASS) {
+        if (xQueueReceive(ControlQueue, &control_data, pdMS_TO_TICKS(10)) == pdPASS) { // 100Hz 
             uint32_t current_time = micros();
             double dt = (current_time - last_time) / 1000000.0;
             if (dt <= 0) {
@@ -222,26 +251,39 @@ void FlightControl(void *pvParameters)
             integral += error * dt;
             integral = constrain(integral, -100, 100); // 파라미터(I 범위) 튜닝 필요. -> PD 제어를 사용하므로 일단 패스
 
-            // D 제어
-            double derivative = (error - previous_error) / dt;
+            // D 제어 기본
+            double derivative_raw = (error - previous_error) / dt;
+
+            // D 제어 kick 방지 방식
+            // double derivative_raw = (previous_yaw - current_yaw) / dt;
+
+            // D 제어값 Low-pass filter 적용
+            float alpha = 0.8; // alpha값 튜닝 필요
+            static double previous_derivative_LPF = 0.0;
+
+            double derivative_LPF = alpha * derivative_raw + (1.0 - alpha) * previous_derivative_LPF;
+            previous_derivative_LPF = derivative_LPF;           
 
             // PID 제어
             // double pid_output = (Kp * error) + (Ki * integral) + (Kd * derivative);
 
             // PD 제어
-            double pid_output = (Kp * error) + (Kd * derivative);
+            double pid_output = (Kp * error) + (Kd * derivative_LPF);
 
             previous_error = error;
+            previous_yaw = current_yaw;
 
             // 서보 제어값 연산
-            double control_angle = constrain(pid_output, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
+            // double control_angle = constrain(pid_output, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
+            double control_angle = constrain(pid_output, -165, 165); // 약 +- 15도 제한 버전
 
+            // 반시계 방향이 pwm 증가, 시계 방향이 pwm 감소
             servo_write_us(CH1, 1500 + control_angle);
             servo_write_us(CH2, 1500 + control_angle);
-            servo_write_us(CH3, 1500 + control_angle);
-            servo_write_us(CH4, 1500 + control_angle);
+            servo_write_us(CH3, 1560 + control_angle);
+            servo_write_us(CH4, 1530 + control_angle);
 
-            // Serial.print("Control Angle: "); Serial.println(control_angle);
+            Serial.print("Control Angle: "); Serial.println(control_angle);
             // Serial.print(" | PID Output: "); Serial.println(pid_output);
         }
             // vTaskDelay를 별도로 두지 않음. xQueueReceive가 최대 10ms 대기하므로 100Hz 주기가 맞춰짐.
@@ -312,7 +354,6 @@ void Parachute(void *pvParameters)
                             chute.set_launch_time(parachute_data.timestamp);
                             // Serial.println(chute.Launch_time);
                         }
-
                         angrygyro = sqrt(pow(parachute_data.roll, 2) + pow(parachute_data.pitch, 2));
                         // Serial.println(angrygyro);
                         ejection_data.eject_type = chute.eject(angrygyro, parachute_data.altitude, parachute_data.timestamp, 0); // 0은 메시지 타입. 필요시 변경 가능
