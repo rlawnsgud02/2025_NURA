@@ -26,7 +26,7 @@ private:
     int8_t CH;
     bool is_ejected;
 
-    double clac_BUF[MAX_BUF] = {0};
+    double calc_BUF[MAX_BUF] = {0};
     double anglegro;
     double max_avg_alt;
     double avg_alt;

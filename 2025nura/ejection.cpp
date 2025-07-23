@@ -154,14 +154,9 @@ int ejection::eject(float anglegro, double alt, uint32_t time, int8_t msg) { // 
 
 
 void ejection::BUF_avg(double alt) {
-    avg_alt = 0;
-    clac_BUF[count] = alt;
-    count++;
-    for (int i = 0; i < MAX_BUF; i++) {
-        avg_alt += clac_BUF[i];
-    }
-    avg_alt /= MAX_BUF;
-    count = (count == MAX_BUF) ? 0 : count;
+    avg_alt += (alt - calc_BUF[count]) / MAX_BUF;
+    calc_BUF[count] = alt;
+    count = (count + 1) % MAX_BUF;
 }
 
 
