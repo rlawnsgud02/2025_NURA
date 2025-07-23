@@ -5,12 +5,12 @@ EBIMU_AHRS::EBIMU_AHRS(HardwareSerial& serial, int rxPin, int txPin, long baudRa
     : IMU_Serial(serial), rxPin(rxPin), txPin(txPin), baudRate(baudRate), roll(0), pitch(0), yaw(0), accelZ(0) {memset(data, 0, sizeof(data));}
 
 void EBIMU_AHRS::initialize() {
-    Serial.println("\n\n------| Initializing IMU... |------\n");
+    Serial.println("\n\n-----| Initializing IMU... |-----\n");
 
     IMU_Serial.begin(baudRate, SERIAL_8N1, rxPin, txPin);
     delay(2000); // 안정적인 시작을 위한 대기
 
-    Serial.println("\n------| Configuring IMU... |------\n");
+    Serial.println("\n-----| Configuring IMU... |-----\n");
     sendCommand("<soc1>"); // ASCII 모드 설정
     sendCommand("<sor10>"); // 100Hz 출력 속도 설정
     sendCommand("<sof1>"); // Euler Angle(RPY) 출력
@@ -19,7 +19,7 @@ void EBIMU_AHRS::initialize() {
     sendCommand("<som1>"); // 지자기 출력 활성화
     sendCommand("<cmoz>"); // YAW 오프셋 제거
 
-    Serial.println("\n------| IMU Initialize Done! |------\n");
+    Serial.println("\n-----| IMU Initialize Done! |-----\n");
 }
 
 void EBIMU_AHRS::sendCommand(const char* command) {

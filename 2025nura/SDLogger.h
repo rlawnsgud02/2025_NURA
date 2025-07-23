@@ -15,6 +15,7 @@ namespace DATA {
     extern GpsData gps;
     extern int8_t eject;
     extern int8_t launch;
+    extern int* control_log;
 }
 
 // namespace DATA {
@@ -49,7 +50,7 @@ public:
     bool openFile();
     bool closeFile();
     bool flushFile();
-    void setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, GpsData &gps, int eject, int launch);
+    void setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, GpsData &gps, int eject, int launch, int * control_log);
     // void setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, int eject);
     void print();
     bool write_one_line();

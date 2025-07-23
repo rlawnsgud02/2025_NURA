@@ -1,8 +1,8 @@
-/* ----------------------------------------
+/* ----------------------------------------------------------------------
     2025 NURA Avionics
     - Avionics Team: K. JunHyeong, K. RangHyeon, K. YongJin, S. SeungMin
     - Last update: 2025.07.22
-   ---------------------------------------- */
+   ---------------------------------------------------------------------- */
 
 #include "EBIMU_AHRS.h"
 #include "ubx_gps.h"
@@ -40,9 +40,12 @@
 #define CH4 3 // Canard 4
 #define CH5 4 // Ejection Servo
 
-#define Kp 3
+// #define Kp 0.05 
+#define Kp 0.5 
 #define Ki 0.0
-#define Kd 0.1
+#define Kd 0
+
+#define M_PI 3.1415926535897932384626433832795
 
 // 객체 생성
 // SoftwareSerial gpsSerial(GPS_RX, GPS_TX);
@@ -56,7 +59,7 @@ Packet payload;
 ejection chute(CHUTE, CH5, false); // 사출 객체 생성
 
 // 서보 선언
-const int SERVO_FREQUENCY = 50;
+const int SERVO_FREQUENCY = 330;
 const int PWM_RESOLUTION_BITS = 12;
 const uint32_t MAX_DUTY_CYCLE = (1 << PWM_RESOLUTION_BITS) - 1;
 
@@ -66,6 +69,19 @@ bool set_launch_time = false;
 struct ControlData_t{
   float yaw;
 };
+
+struct ControlLog_t
+{
+    int pwm[4]; // CH1, CH2, CH3, CH4에 대한 PWM 값
+
+    ControlLog_t() {
+        pwm[0] = 1500;
+        pwm[1] = 1500;
+        pwm[2] = 1560;
+        pwm[3] = 1530;
+    }
+};
+
 
 struct BlackBoxData_t{
   uint32_t timestamp;
@@ -87,6 +103,7 @@ struct EjectionData_t{
 };
 
 QueueHandle_t ControlQueue;
+QueueHandle_t ControlLogQueue;
 QueueHandle_t BlackBoxQueue;
 QueueHandle_t ParachuteQueue;
 QueueHandle_t EjectionQueue;
@@ -146,6 +163,7 @@ void setup()
 
     // Queue 생성
     ControlQueue = xQueueCreate(1, sizeof(ControlData_t));
+    ControlLogQueue = xQueueCreate(1, sizeof(ControlLog_t));
     BlackBoxQueue = xQueueCreate(5, sizeof(BlackBoxData_t));
     ParachuteQueue = xQueueCreate(1, sizeof(ParachuteData_t));
     EjectionQueue = xQueueCreate(3, sizeof(EjectionData_t));
@@ -158,12 +176,11 @@ void setup()
     // xTaskCreatePinnedToCore(printWatermark, "Watermark", 2048, NULL, 1, NULL, 0); // 스레드별 메모리 사용량 확인
 
     Serial.println("-----| START! |-----");
-    rf.print("Avionics Ready!");
 }
 
 // void printWatermark(void *pvParameters){
 //     while(1){
-//         delay(2000);
+//         vTaskDelay(pdMS_TO_TICKS(2000));
 //         Serial.print("TASK: ");
 //         Serial.print(pcTaskGetName(task1)); // Get task name with handler
 //         Serial.print(", High Watermark: ");
@@ -191,14 +208,16 @@ void setup()
 void FlightControl(void *pvParameters)
 {
     ControlData_t control_data;
+    ControlLog_t control_log_data;
 
-    double setpoint = 90.0; 
+    double setpoint = 90.0 * M_PI / 180; 
     double integral = 0.0;
     double previous_error = 0.0;
     uint32_t last_time = 0;
 
     last_time = micros();
     
+    // 서보 초기화 및 작동 테스트
     // 서보 캘리브레이션 결과 아래와 같이 줘야 수직값이다.
     servo_write_us(CH1, 1500);
     servo_write_us(CH2, 1500);
@@ -230,9 +249,6 @@ void FlightControl(void *pvParameters)
     servo_write_us(CH4, 1530);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    double previous_yaw = 0.0;
-    xQueuePeek(ControlQueue, &control_data, pdMS_TO_TICKS(10));
-
     while(true) {
         // 제어 큐에서 데이터를 받아옴. 10ms 동안 데이터가 없으면 그냥 넘어감
         if (xQueueReceive(ControlQueue, &control_data, pdMS_TO_TICKS(10)) == pdPASS) { // 100Hz 
@@ -244,7 +260,7 @@ void FlightControl(void *pvParameters)
             last_time = current_time;
 
             // P 제어
-            double current_yaw = control_data.yaw;
+            double current_yaw = control_data.yaw * M_PI / 180;
             double error = setpoint - current_yaw;
 
             // I 제어
@@ -254,28 +270,22 @@ void FlightControl(void *pvParameters)
             // D 제어 기본
             double derivative_raw = (error - previous_error) / dt;
 
-            // D 제어 kick 방지 방식
-            // double derivative_raw = (previous_yaw - current_yaw) / dt;
-
             // D 제어값 Low-pass filter 적용
-            float alpha = 0.8; // alpha값 튜닝 필요
+            float alpha = 0.4; // alpha값 튜닝 필요
             static double previous_derivative_LPF = 0.0;
 
             double derivative_LPF = alpha * derivative_raw + (1.0 - alpha) * previous_derivative_LPF;
-            previous_derivative_LPF = derivative_LPF;           
-
-            // PID 제어
-            // double pid_output = (Kp * error) + (Ki * integral) + (Kd * derivative);
+            previous_derivative_LPF = derivative_LPF;
 
             // PD 제어
-            double pid_output = (Kp * error) + (Kd * derivative_LPF);
+            double pid_Rad = (Kp * error) + (Kd * derivative_LPF);
+            double pid_PWM = pid_Rad / 0.09 * 180 / M_PI;
 
             previous_error = error;
-            previous_yaw = current_yaw;
 
             // 서보 제어값 연산
             // double control_angle = constrain(pid_output, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
-            double control_angle = constrain(pid_output, -165, 165); // 약 +- 15도 제한 버전
+            double control_angle = constrain(pid_PWM, -165, 165); // 약 +- 15도 제한 버전
 
             // 반시계 방향이 pwm 증가, 시계 방향이 pwm 감소
             servo_write_us(CH1, 1500 + control_angle);
@@ -283,10 +293,16 @@ void FlightControl(void *pvParameters)
             servo_write_us(CH3, 1560 + control_angle);
             servo_write_us(CH4, 1530 + control_angle);
 
+            control_log_data.pwm[0] = 1500 + control_angle;
+            control_log_data.pwm[1] = 1500 + control_angle;
+            control_log_data.pwm[2] = 1560 + control_angle;
+            control_log_data.pwm[3] = 1530 + control_angle;
+
+            xQueueOverwrite(ControlLogQueue, &control_log_data);
+
             Serial.print("Control Angle: "); Serial.println(control_angle);
             // Serial.print(" | PID Output: "); Serial.println(pid_output);
         }
-            // vTaskDelay를 별도로 두지 않음. xQueueReceive가 최대 10ms 대기하므로 100Hz 주기가 맞춰짐.
     }
 }
 
@@ -331,7 +347,7 @@ void ATTALT(void *pvParameters)
         // xQueueSend: 큐에 공간이 있을 때만 데이터 삽입.
         xQueueSend(BlackBoxQueue, &blackbox_data, pdMS_TO_TICKS(5)); // 5ms 동안 큐에 공간이 나길 기다림
 
-        vTaskDelay(pdMS_TO_TICKS(10)); // 100Hz 유지
+        vTaskDelay(pdMS_TO_TICKS(20)); // 100Hz 유지
     }
 }
 
@@ -367,19 +383,21 @@ void Parachute(void *pvParameters)
 void SRG(void *pvParameters)
 {
     sd.initialize();
+    rf.print("Avionics Ready!");
 
     static BlackBoxData_t blackbox_data = {0};
     static GpsData gpsData;
     static EjectionData_t ejection_data = {0};
-
+    static ControlLog_t control_log_data;
 
     while(true) {
         gps.get_gps_data(gpsData);
 
         xQueueReceive(BlackBoxQueue, &blackbox_data, 0);
         xQueueReceive(EjectionQueue, &ejection_data, 0);
+        xQueueReceive(ControlLogQueue, &control_log_data, 0);
 
-        sd.setData(blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.maxG, blackbox_data.baro, gpsData, ejection_data.eject_type, ejection_data.launch_status); // setData 함수를 구조체를 받도록 수정 필요
+        sd.setData(blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.maxG, blackbox_data.baro, gpsData, ejection_data.eject_type, ejection_data.launch_status, control_log_data.pwm); // setData 함수를 구조체를 받도록 수정 필요
         sd.write_data();
 
         // RF로 데이터 전송

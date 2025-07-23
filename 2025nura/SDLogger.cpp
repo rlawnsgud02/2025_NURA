@@ -11,6 +11,7 @@ namespace DATA {
     GpsData gps;
     int8_t eject;
     int8_t launch;
+    int* control_log;
 }
 
 // namespace DATA {
@@ -72,10 +73,11 @@ int SDFatLogger::create_new_data_file() {
         Serial.println("파일 생성 실패!");  
         return -1;
     }
-
+    dataFile.println("[Description]");
+    dataFile.println("Chute 0:,Not Ejected,Chute 1:,Attitude,Chute 2:,Altitude,Chute 3:,Timer,Chute 4:,Remote Forced");
+    dataFile.println("Launch 0:,Not Launched,Launch 1:,Launched");
     dataFile.println("[Data]");
-    dataFile.println("Chute:,Not Ejected : 0,Attitude : 1,Altitude : 2,Timer : 3,Remote Forced : 4");
-    dataFile.println("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz,Roll,Pitch,Yaw,maxG,T,P,P_alt,fix,Lon,Lat,Alt,VN,VE,VD,Chute,Launch"); // GPS 포함 버전
+    dataFile.println("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz,Roll,Pitch,Yaw,maxG,T,P,P_alt,fix,Lon,Lat,Alt,VN,VE,VD,Chute,Launch,Canard1,Canard2,Canard3,Canard4"); // GPS 포함 버전
     // dataFile.println("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz,Roll,Pitch,Yaw,maxG,T,P,P_alt,Chute");
     // dataFile.flush();
     dataFile.close();
@@ -93,7 +95,7 @@ int SDFatLogger::write_data() {
         dataFile.clearWriteError();  // 꼭 리셋해야 다음 print가 먹음
     }
 
-    char buf[256];
+    char buf[512];
     
     // GPS 없는 버전
     // int len = snprintf(buf, sizeof(buf),
@@ -111,7 +113,7 @@ int SDFatLogger::write_data() {
     // GPS 포함 버전
     int len = snprintf(buf, sizeof(buf),
         "%ld,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
-        "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.7f,%.7f,%.2f,%.2f,%.2f,%.2f,%d,%d\n",
+        "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.7f,%.7f,%.2f,%.2f,%.2f,%.2f,%d,%d,%d,%d,%d,%d\n",
         DATA::timestamp,
         DATA::acc[0], DATA::acc[1], DATA::acc[2],
         DATA::gyro[0], DATA::gyro[1], DATA::gyro[2],
@@ -121,7 +123,8 @@ int SDFatLogger::write_data() {
         DATA::baro[0], DATA::baro[1], DATA::baro[2],
         DATA::gps.fixType, DATA::gps.lon, DATA::gps.lat, DATA::gps.height,
         DATA::gps.velN, DATA::gps.velE, DATA::gps.velD,
-        DATA::eject, DATA::launch);
+        DATA::eject, DATA::launch,
+        DATA::control_log[0], DATA::control_log[1], DATA::control_log[2], DATA::control_log[3], DATA::control_log[4]);
 
     if (len < 0 || len >= (int)sizeof(buf)) {
         Serial.println("❌ snprintf overflow");
@@ -156,7 +159,7 @@ int SDFatLogger::write_data() {
 // }
 
 // GPS 데이터 저장 버전
-void SDFatLogger::setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, GpsData &gps, int eject, int launch) {
+void SDFatLogger::setData(int32_t timestamp, float * acc, float * gyro, float * mag, float * euler, float maxG, float * baro, GpsData &gps, int eject, int launch, int * control_log) {
     DATA::timestamp = timestamp;
     DATA::acc = acc;
     DATA::gyro = gyro;
@@ -167,6 +170,7 @@ void SDFatLogger::setData(int32_t timestamp, float * acc, float * gyro, float * 
     DATA::gps = gps;
     DATA::eject = eject;
     DATA::launch = launch;
+    DATA::control_log = control_log;
 }
 
 bool SDFatLogger::isInit() {

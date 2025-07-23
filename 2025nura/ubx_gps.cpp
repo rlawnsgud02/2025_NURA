@@ -15,24 +15,23 @@ void UbxGPS::initialize() {
     // set_config(UBX_config::PRT);
     gpsPort.begin(gpsSDA, gpsSCL);
 
-    Serial.println("NAV config");
+    Serial.println("Setting NAV config");
     set_config(UBX_config::NAV5);
     delay(50);
     
-    Serial.println("RATE config");
+    Serial.println("Setting RATE config");
     set_config(UBX_config::RATE);
     delay(50);
 
-    Serial.println("PMS config");
+    Serial.println("Setting PMS config");
     set_config(UBX_config::PMS);
     delay(50);
-
 
     disable_all_nmea(true);
     enable_ubx(UBX_ID::PVT);
     // enable_ubx(UBX_ID::POSLLH);
 
-    Serial.println("\n\n-----| GPS Initialized! |-----\n");
+    Serial.println("\n-----| GPS Initialized! |-----\n");
     delay(500);
 }
 
