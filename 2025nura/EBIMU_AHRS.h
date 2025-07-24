@@ -9,11 +9,12 @@
 
 class EBIMU_AHRS {
 public:
-    EBIMU_AHRS(HardwareSerial& serial, int rxPin, int txPin, long baudRate = 115200);
+    EBIMU_AHRS(HardwareSerial& serial, int rxPin, int txPin, long baudRate = 921600);
     
     void initialize(); // IMU 초기화
     void sendCommand(const char* command); // 명령어 전송
     void parseData(); // IMU 데이터 파싱
+    void parseDataBinary(); 
     
     /*
     Calibration은 구체적으로 구현해두지 않았는데, EBIMU에서 공식으로 제공하는 터미널을 사용하여 Calibration을 더 편하게 할 수 있고
@@ -46,6 +47,8 @@ private:
     float magX, magY, magZ;
     float roll, pitch, yaw;
     // float maxG;
+
+    void clearIMURxBuffer();
 
 };
 

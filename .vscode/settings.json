@@ -15,6 +15,7 @@
         "streambuf": "cpp",
         "limits": "cpp",
         "cstdint": "cpp",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "compare": "cpp"
     }
 }

@@ -5,19 +5,45 @@ EBIMU_AHRS::EBIMU_AHRS(HardwareSerial& serial, int rxPin, int txPin, long baudRa
     : IMU_Serial(serial), rxPin(rxPin), txPin(txPin), baudRate(baudRate), roll(0), pitch(0), yaw(0), accelZ(0) {memset(data, 0, sizeof(data));}
 
 void EBIMU_AHRS::initialize() {
+    // Serial.println("\n\n-----| Initializing IMU... |-----\n");
+
+    // IMU_Serial.begin(baudRate, SERIAL_8N1, rxPin, txPin);
+    // delay(2000); // 안정적인 시작을 위한 대기
+
+    // Serial.println("\n-----| Configuring IMU... |-----\n");
+    // // sendCommand("<soc1>"); // ASCII 모드 설정
+    // // sendCommand("<soc2>"); // Binary 모드 설정
+    // // sendCommand("<sor10>"); // 100Hz 출력 속도 설정
+    // // sendCommand("<sof1>"); // Euler Angle(RPY) 출력
+    // // sendCommand("<sog1>"); // 자이로 출력 활성화
+    // // sendCommand("<soa1>"); // 가속도 출력 활성화 (X, Y, Z 전체). RPY값 뒤에 출력됨.
+    // // sendCommand("<som1>"); // 지자기 출력 활성화
+    // sendCommand("<cmoz>"); // YAW 오프셋 제거
+
+    // Serial.println("\n-----| IMU Initialize Done! |-----\n");
+
     Serial.println("\n\n-----| Initializing IMU... |-----\n");
 
     IMU_Serial.begin(baudRate, SERIAL_8N1, rxPin, txPin);
-    delay(2000); // 안정적인 시작을 위한 대기
+    delay(1000); // 시리얼 포트 안정화를 위한 대기
+
+    Serial.println("\n-----| Stopping IMU stream for configuration... |-----\n");
+    IMU_Serial.println("<stop>"); // 데이터 스트림 중지
+    clearIMURxBuffer();           // <ok> 응답 및 버퍼에 쌓인 데이터 모두 비우기
 
     Serial.println("\n-----| Configuring IMU... |-----\n");
-    sendCommand("<soc1>"); // ASCII 모드 설정
-    sendCommand("<sor10>"); // 100Hz 출력 속도 설정
-    sendCommand("<sof1>"); // Euler Angle(RPY) 출력
-    sendCommand("<soa1>"); // 가속도 출력 활성화 (X, Y, Z 전체). RPY값 뒤에 출력됨.
-    sendCommand("<sog1>"); // 자이로 출력 활성화
-    sendCommand("<som1>"); // 지자기 출력 활성화
-    sendCommand("<cmoz>"); // YAW 오프셋 제거
+    // 이제 IMU는 데이터 스트림 없이 <ok> 응답만 보냅니다.
+    sendCommand("<soc2>");   // Binary 모드 설정
+    sendCommand("<sor10>");  // 10Hz 출력 속도 설정 (데이터시트상 10ms 주기)
+    sendCommand("<sof1>");   // Euler Angle(RPY) 출력
+    sendCommand("<sog1>");   // 자이로 출력 활성화
+    sendCommand("<soa1>");   // 가속도 출력 활성화
+    sendCommand("<som1>");   // 지자기 출력 활성화
+    sendCommand("<cmoz>");   // YAW 오프셋 제거
+
+    Serial.println("\n-----| Restarting IMU stream... |-----\n");
+    IMU_Serial.println("<start>"); // 설정 완료 후 데이터 스트림 재시작
+    clearIMURxBuffer();            // 마지막 <ok> 응답 비우기
 
     Serial.println("\n-----| IMU Initialize Done! |-----\n");
 }
@@ -38,63 +64,6 @@ String EBIMU_AHRS::readData() {
     return "";
 }
 
-// void EBIMU_AHRS::readData(char* buffer, int bufferSize) {
-//     if (IMU_Serial.available()) {
-//         int bytesRead = IMU_Serial.readBytesUntil('\n', buffer, bufferSize - 1);
-//         buffer[bytesRead] = '\0'; // 문자열의 끝을 명시
-//     } else {
-//         buffer[0] = '\0'; // 읽은 데이터가 없으면 빈 문자열로 만듦
-//     }
-// }
-
-// void EBIMU_AHRS::parseData() {
-//     char imuBuffer[100]; // 데이터를 담을 충분한 크기의 char 배열 버퍼
-//     readData(imuBuffer, sizeof(imuBuffer));
-
-//     // 데이터가 비어있거나 시작 문자가 '*'가 아니면 즉시 종료
-//     if (imuBuffer[0] != '*') {
-//         return;
-//     }
-
-//     // 임시로 파싱된 데이터를 저장할 배열과 카운터
-//     float data[12];
-//     int field_count = 0;
-    
-//     // strtok 함수를 사용하여 쉼표(,)를 기준으로 문자열을 자름
-//     // 첫 번째 호출: 파싱할 문자열과 구분자 전달
-//     char* token = strtok(imuBuffer + 1, ","); // '*' 다음 문자부터 시작
-
-//     // while 루프를 돌며 다음 토큰(데이터 조각)을 가져옴
-//     while (token != NULL && field_count < 12) {
-//         // atof 함수: char* 타입의 문자열을 float으로 변환
-//         data[field_count] = atof(token);
-        
-//         // 다음 토큰을 계속 찾음
-//         token = strtok(NULL, ",");
-//         field_count++;
-//     }
-
-//     if (field_count == 12) {
-//         roll    = data[0];
-//         pitch   = data[1];
-//         yaw     = data[2];
-
-//         gyroX  = data[3];
-//         gyroY  = data[4];
-//         gyroZ  = data[5];
-
-//         accelX  = data[6];
-//         accelY  = data[7];
-//         accelZ  = data[8];
-
-//         magX    = data[9];
-//         magY    = data[10];
-//         magZ    = data[11];
-//     }
-// }
-
-
-// 구형 버전. 오염된 값을 반영할 가능성이 높음
 void EBIMU_AHRS::parseData() {
 
     String imuData = readData();
@@ -132,6 +101,73 @@ void EBIMU_AHRS::parseData() {
         magX    = data[9];
         magY    = data[10];
         magZ    = data[11];
+    }
+}
+
+void EBIMU_AHRS::parseDataBinary() {
+    // 데이터시트(p.13) 기반 상수 정의
+    const int PACKET_SIZE = 28;
+    const uint8_t SOP = 0x55;  
+
+    // 시리얼 버퍼에 완전한 패킷이 수신될 때까지 대기
+    while (IMU_Serial.available() >= PACKET_SIZE) {
+
+        // 1. 패킷 시작점(SOP) 찾기: 0x55 0x55
+        // 데이터 스트림 동기화를 위해 SOP를 먼저 찾습니다.
+        if (IMU_Serial.read() == SOP && IMU_Serial.read() == SOP) {
+            
+            // 2. 패킷 데이터 읽기
+            // SOP를 제외한 나머지 데이터(값, 체크섬)를 버퍼로 읽어옵니다.
+            uint8_t buffer[PACKET_SIZE - 2];
+            IMU_Serial.readBytes(buffer, sizeof(buffer));
+
+            // 3. 체크섬(Checksum) 검증
+            // 데이터시트(p.13)에 따라 SOP를 포함한 모든 데이터의 합을 계산합니다[cite: 266].
+            uint16_t calculatedChecksum = SOP + SOP;
+            for (int i = 0; i < (PACKET_SIZE - 4); i++) { // 데이터 부분(24바이트)만 더함
+                calculatedChecksum += buffer[i];
+            }
+
+            // 수신된 체크섬 값을 16비트 정수로 변환
+            uint16_t receivedChecksum = ((uint16_t)buffer[24] << 8) | buffer[25];
+
+            // 계산된 체크섬과 수신된 체크섬이 다르면 데이터 오류로 판단하고 패킷을 버립니다.
+            if (calculatedChecksum != receivedChecksum) {
+                continue; // 다음 패킷을 찾아 계속 진행
+            }
+
+            // 4. 데이터 파싱 및 스케일링
+            // 체크섬이 유효하면, 2바이트씩 묶어 16비트 정수로 변환 후,
+            // 데이터시트의 스케일링 팩터에 따라 실수(float)로 변환합니다.
+            int16_t rawValue;
+            
+            // [데이터 순서] 기존 parseData와 동일하게 RPY -> Gyro -> Accel -> Mag 순으로 처리
+            for(int i = 0; i < 3; i++) {
+                rawValue = (int16_t)(((uint16_t)buffer[i*2] << 8) | buffer[i*2 + 1]);
+                data[i] = rawValue / 100.0f;
+            }
+            for(int i = 3; i < 6; i++) {
+                rawValue = (int16_t)(((uint16_t)buffer[i*2] << 8) | buffer[i*2 + 1]);
+                data[i] = rawValue / 10.0f;
+            }
+            for(int i = 6; i < 9; i++) {
+                rawValue = (int16_t)(((uint16_t)buffer[i*2] << 8) | buffer[i*2 + 1]);
+                data[i] = rawValue / 1000.0f;
+            }
+            for(int i = 9; i < 12; i++) {
+                rawValue = (int16_t)(((uint16_t)buffer[i*2] << 8) | buffer[i*2 + 1]);
+                data[i] = rawValue / 10.0f;
+            }
+
+            // 5. 파싱된 데이터를 클래스 멤버 변수에 할당
+            roll    = data[0]; pitch   = data[1]; yaw     = data[2];
+            gyroX   = data[3]; gyroY   = data[4]; gyroZ   = data[5];
+            accelX  = data[6]; accelY  = data[7]; accelZ  = data[8];
+            magX    = data[9]; magY    = data[10]; magZ    = data[11];
+            
+            // 성공적으로 패킷 하나를 파싱했으므로 함수 종료
+            return; 
+        }
     }
 }
 
@@ -210,4 +246,11 @@ void EBIMU_AHRS::calibrateAll() {
 
 float EBIMU_AHRS::get_anglegro() {
     return sqrt(pow(roll, 2) + pow(pitch, 2));
+}
+
+void EBIMU_AHRS::clearIMURxBuffer() {
+  delay(100); // 응답이 도착할 시간을 잠시 기다립니다.
+  while (IMU_Serial.available() > 0) {
+    IMU_Serial.read();
+  }
 }

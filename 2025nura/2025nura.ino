@@ -41,9 +41,9 @@
 #define CH5 4 // Ejection Servo
 
 // #define Kp 0.05 
-#define Kp 0.5 
+#define Kp 0.2
 #define Ki 0.0
-#define Kd 0
+#define Kd 0.0
 
 #define M_PI 3.1415926535897932384626433832795
 
@@ -284,8 +284,8 @@ void FlightControl(void *pvParameters)
             previous_error = error;
 
             // 서보 제어값 연산
-            // double control_angle = constrain(pid_output, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
-            double control_angle = constrain(pid_PWM, -165, 165); // 약 +- 15도 제한 버전
+            double control_angle = constrain(pid_PWM, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
+            // double control_angle = constrain(pid_PWM, -165, 165); // 약 +- 15도 제한 버전
 
             // 반시계 방향이 pwm 증가, 시계 방향이 pwm 감소
             servo_write_us(CH1, 1500 + control_angle);
@@ -319,7 +319,8 @@ void ATTALT(void *pvParameters)
     while(true) {
         // IMU, 기압계 데이터 읽기
         if(Serial2.available()) {
-            imu.parseData();
+            // imu.parseData();
+            imu.parseDataBinary();
             imu.getRPY(blackbox_data.RPY[0], blackbox_data.RPY[1], blackbox_data.RPY[2]);
             imu.getAccelGyroMagFloat(blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag);
             maxG = max(maxG, blackbox_data.acc[2]);
