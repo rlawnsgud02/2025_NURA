@@ -214,6 +214,8 @@ void FlightControl(void *pvParameters)
     double previous_error = 0.0;
     uint32_t last_time = 0;
 
+    static double previous_control_angle = 0.0;
+
     last_time = micros();
     
     // 서보 초기화 및 작동 테스트
@@ -283,12 +285,11 @@ void FlightControl(void *pvParameters)
             previous_error = error;
 
             // 서보 제어값 연산
-            // double control_angle = constrain(pid_PWM, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
+            double control_angle = constrain(pid_PWM, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
             // double control_angle = constrain(pid_PWM, -165, 165); // 약 +- 15도 제한 버전
-            double control_angle = constrain(pid_PWM, -500, 500); 
+            // double control_angle = constrain(pid_PWM, -500, 500); 
 
             // Pole 지점에서 급격하게 반대방향으로 회전하는 것을 막아줌
-            double previous_control_angle = 0.0;
             if(abs(control_angle - previous_control_angle) > 150) {
                 control_angle = previous_control_angle;
             }
