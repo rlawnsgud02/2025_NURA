@@ -41,9 +41,9 @@
 #define CH5 4 // Ejection Servo
 
 // #define Kp 0.05 
-#define Kp 0.5
+#define Kp 0.05f
 #define Ki 0.0
-#define Kd 0.04
+#define Kd 0.01f
 
 #define M_PI 3.1415926535897932384626433832795
 
@@ -209,12 +209,15 @@ void FlightControl(void *pvParameters)
     ControlData_t control_data;
     ControlLog_t control_log_data;
 
-    double setpoint = 90.0 * M_PI / 180; 
-    double integral = 0.0;
-    double previous_error = 0.0;
+    float setpoint = 90.0f * M_PI / 180.0f;
+    float integral = 0.0f;
+    float previous_error = 0.0f;
     uint32_t last_time = 0;
 
-    static double previous_control_angle = 0.0;
+    static float previous_pid = 0.0f;
+    float pid_diff = 0.0f;
+
+    static float previous_control_angle = 0.0f;
 
     last_time = micros();
     
@@ -250,44 +253,78 @@ void FlightControl(void *pvParameters)
     servo_write_us(CH4, 1530);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
+    // static const double simulated_errors[] = {0.0000,-0.0047,0.0148,0.0849,0.1839,0.3018,0.4324,0.5598,0.6818,0.7977,0.8987,0.9876,1.0671,1.1333,1.1901,1.2401,1.2816,1.3175,1.3494,1.3764,1.3999,1.4213,1.4394,1.4555,1.4700,1.4824,1.4933,1.5032,1.5117,1.5191,1.5258,1.5315,1.5365,1.5409,1.5448,1.5481,1.5511,1.5536,1.5559,1.5579,1.5596,1.5610,1.5624,1.5635,1.5645,1.5653,1.5661,1.5667,1.5673,1.5678,1.5682,1.5686,1.5689,1.5692,1.5694,1.5696,1.5698,1.5699,1.5701,1.5702,1.5703,1.5704,1.5704,1.5705,1.5705,1.5706,1.5706,1.5707,1.5707,1.5707,1.5707,1.5707,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708};
+    // const int error_data_count = sizeof(simulated_errors) / sizeof(simulated_errors[0]);
+    // static int error_index = 0;
+
     while(true) {
         // 제어 큐에서 데이터를 받아옴. 10ms 동안 데이터가 없으면 그냥 넘어감
         if (xQueueReceive(ControlQueue, &control_data, pdMS_TO_TICKS(10)) == pdPASS) { // 100Hz 
+
             uint32_t current_time = micros();
-            double dt = (current_time - last_time) / 1000000.0;
+            float dt = (current_time - last_time) / 1000000.0;
+            // double dt = 0.033;
             if (dt <= 0) {
                 dt = 0.01; // 최소 10ms로 설정
             }
             last_time = current_time;
 
             // P 제어
-            double current_yaw = control_data.yaw * M_PI / 180;
-            double error = setpoint - current_yaw;
+            float current_yaw = control_data.yaw * M_PI / 180;
+            float error = setpoint - current_yaw;
+
+            // double error = 0.0; // 기본값
+            // if (error_index < error_data_count) {
+            //     error = simulated_errors[error_index] - 1.57;
+            //     error_index++; // 다음 루프를 위해 인덱스 증가
+            // }
 
             // I 제어
             integral += error * dt;
             integral = constrain(integral, -100, 100); // 파라미터(I 범위) 튜닝 필요. -> PD 제어를 사용하므로 일단 패스
 
             // D 제어 기본
-            double derivative_raw = (error - previous_error) / dt;
+            float derivative_raw = (error - previous_error) / dt;
 
             // D 제어값 Low-pass filter 적용
             float alpha = 0.2; // alpha값 튜닝 필요
-            static double previous_derivative_LPF = 0.0;
+            static float previous_derivative_LPF = 0.0;
 
-            double derivative_LPF = alpha * derivative_raw + (1.0 - alpha) * previous_derivative_LPF;
+            float derivative_LPF = alpha * derivative_raw + (1.0 - alpha) * previous_derivative_LPF;
             previous_derivative_LPF = derivative_LPF;
 
             // PD 제어
-            double pid_Rad = (Kp * error) + (Kd * derivative_LPF);
-            double pid_PWM = pid_Rad / 0.09 * 180 / M_PI;
+            float pid_Rad = (Kp * error) + (Kd * derivative_LPF);
+
+            pid_diff = (pid_Rad - previous_pid) / dt;
+
+            float pid_Rad2;
+
+            if(pid_diff > 7.48)
+            {
+                pid_Rad2 = 7.48 * dt + previous_pid;
+            }
+            else if(pid_diff < -7.48)
+            {
+                pid_Rad2 = -7.48 * dt + previous_pid;
+            }
+            else
+            {
+                pid_Rad2 = pid_Rad;
+            }
+
+            previous_pid = pid_Rad2;
+
+            float pid_PWM = pid_Rad2 / 0.09 * 180 / M_PI;
 
             previous_error = error;
 
             // 서보 제어값 연산
-            double control_angle = constrain(pid_PWM, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
-            // double control_angle = constrain(pid_PWM, -165, 165); // 약 +- 15도 제한 버전
-            // double control_angle = constrain(pid_PWM, -500, 500); 
+            float control_angle = constrain(pid_PWM, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
+            // float control_angle = constrain(pid_PWM, -165, 165); // 약 +- 15도 제한 버전
+            // float control_angle = constrain(pid_PWM, -500, 500); 
+
+            // control_angle = round(control_angle / 10.0f) * 10.0f; // 10의 배수로 pwm을 넣어줌
 
             // Pole 지점에서 급격하게 반대방향으로 회전하는 것을 막아줌
             if(abs(control_angle - previous_control_angle) > 150) {
@@ -309,7 +346,7 @@ void FlightControl(void *pvParameters)
 
             xQueueOverwrite(ControlLogQueue, &control_log_data);
 
-            Serial.print("Control Angle: "); Serial.println(control_angle);
+            // Serial.print("Control Angle: "); Serial.println(control_angle);
             // Serial.print(" | PID Output: "); Serial.println(pid_output);
         }
     }
