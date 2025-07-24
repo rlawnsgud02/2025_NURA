@@ -41,9 +41,9 @@
 #define CH5 4 // Ejection Servo
 
 // #define Kp 0.05 
-#define Kp 0.2
+#define Kp 0.5
 #define Ki 0.0
-#define Kd 0.0
+#define Kd 0.04
 
 #define M_PI 3.1415926535897932384626433832795
 
@@ -127,7 +127,6 @@ void servo_write_us(int channel, int pulse_us) {
 void setup()
 {
     Serial.begin(115200);
-    // while (!Serial); // Serial 초기화 대기. USB로 연결하지 않은 아두이노 단독 실행의 경우 반드시 주석!!
     Serial.println("-----| Serial Ready! |-----");
 
     rf.initialize();
@@ -271,7 +270,7 @@ void FlightControl(void *pvParameters)
             double derivative_raw = (error - previous_error) / dt;
 
             // D 제어값 Low-pass filter 적용
-            float alpha = 0.4; // alpha값 튜닝 필요
+            float alpha = 0.2; // alpha값 튜닝 필요
             static double previous_derivative_LPF = 0.0;
 
             double derivative_LPF = alpha * derivative_raw + (1.0 - alpha) * previous_derivative_LPF;
@@ -284,8 +283,17 @@ void FlightControl(void *pvParameters)
             previous_error = error;
 
             // 서보 제어값 연산
-            double control_angle = constrain(pid_PWM, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
+            // double control_angle = constrain(pid_PWM, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
             // double control_angle = constrain(pid_PWM, -165, 165); // 약 +- 15도 제한 버전
+            double control_angle = constrain(pid_PWM, -500, 500); 
+
+            // Pole 지점에서 급격하게 반대방향으로 회전하는 것을 막아줌
+            double previous_control_angle = 0.0;
+            if(abs(control_angle - previous_control_angle) > 150) {
+                control_angle = previous_control_angle;
+            }
+
+            previous_control_angle = control_angle;
 
             // 반시계 방향이 pwm 증가, 시계 방향이 pwm 감소
             servo_write_us(CH1, 1500 + control_angle);
@@ -330,7 +338,6 @@ void ATTALT(void *pvParameters)
                 Baro.getTempPressAlt(blackbox_data.baro[0], blackbox_data.baro[1], blackbox_data.baro[2]);
             }
         }
-
         control_data.yaw = blackbox_data.RPY[2];
 
         blackbox_data.timestamp = millis() - Timer;
@@ -346,9 +353,9 @@ void ATTALT(void *pvParameters)
         xQueueOverwrite(ParachuteQueue, &parachute_data);
 
         // xQueueSend: 큐에 공간이 있을 때만 데이터 삽입.
-        xQueueSend(BlackBoxQueue, &blackbox_data, pdMS_TO_TICKS(5)); // 5ms 동안 큐에 공간이 나길 기다림
+        xQueueSend(BlackBoxQueue, &blackbox_data, 0); // 5ms 동안 큐에 공간이 나길 기다림
 
-        vTaskDelay(pdMS_TO_TICKS(20)); // 100Hz 유지
+        vTaskDelay(pdMS_TO_TICKS(10)); // 100Hz
     }
 }
 
