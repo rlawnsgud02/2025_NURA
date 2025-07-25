@@ -408,7 +408,7 @@ void Parachute(void *pvParameters)
     while(true) {
         // 사출 판단 큐에서 데이터를 받아옴
         if (xQueueReceive(ParachuteQueue, &parachute_data, portMAX_DELAY) == pdPASS) { // 새 데이터가 올 때까지 무한정 대기
-            // if(digitalRead(SAFETY_PIN) == LOW) { // 1차 안전장치
+            if(digitalRead(SAFETY_PIN) == LOW) { // 1차 안전장치
                 if(digitalRead(LAUNCH_PIN) == LOW) { // 2차 안전장치
                         if (!set_launch_time) {
                             ejection_data.launch_status = 1;
@@ -421,7 +421,7 @@ void Parachute(void *pvParameters)
                         ejection_data.eject_type = chute.eject(angrygyro, parachute_data.altitude, parachute_data.timestamp, 0); // 0은 메시지 타입. 필요시 변경 가능
                         xQueueSend(EjectionQueue, &ejection_data, pdMS_TO_TICKS(5));
                 }
-            // }
+            }
         }
     }
 }
