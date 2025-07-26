@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
     2025 NURA Avionics
     - Avionics Team: K. JunHyeong, K. RangHyeon, K. YongJin, S. SeungMin
-    - Last update: 2025.07.22
+    - Last update: 2025.07.26
    ---------------------------------------------------------------------- */
 
 #include "EBIMU_AHRS.h"
@@ -67,7 +67,9 @@ const uint32_t MAX_DUTY_CYCLE = (1 << PWM_RESOLUTION_BITS) - 1;
 bool set_launch_time = false;
 
 struct ControlData_t{
-  float yaw;
+    float yaw;
+    uint32_t timestamp;
+    ControlData_t(): yaw(0.0f), timestamp(0) {}
 };
 
 struct ControlLog_t
@@ -102,11 +104,19 @@ struct EjectionData_t{
     // EjectionData_t(): eject_type(0), launch_status(0) {} // 생성자를 통한 초기화
 };
 
+struct LaunchData_t
+{
+    int8_t launch_status; // 발사 상태 (0: 미발사, 1: 발사)
+    LaunchData_t(): launch_status(0) {}
+};
+
+
 QueueHandle_t ControlQueue;
 QueueHandle_t ControlLogQueue;
 QueueHandle_t BlackBoxQueue;
 QueueHandle_t ParachuteQueue;
 QueueHandle_t EjectionQueue;
+QueueHandle_t LaunchDataQueue;
 
 void FlightControl(void *pvParameters);
 void ATTALT(void *pvParameters);
@@ -166,11 +176,12 @@ void setup()
     BlackBoxQueue = xQueueCreate(5, sizeof(BlackBoxData_t));
     ParachuteQueue = xQueueCreate(1, sizeof(ParachuteData_t));
     EjectionQueue = xQueueCreate(3, sizeof(EjectionData_t));
+    LaunchDataQueue = xQueueCreate(1, sizeof(LaunchData_t));
 
     // RTOS 설정. Function, Name, Stack Size, Parameter, Priority, Handle, Core
-    xTaskCreatePinnedToCore(FlightControl, "Control Loop", 4096, NULL, 3, NULL, 1);
-    xTaskCreatePinnedToCore(ATTALT, "IMU, Barometric Loop", 4096, NULL, 2, NULL, 1);
-    xTaskCreatePinnedToCore(Parachute, "Chute Ejcetion Loop", 4096, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(FlightControl, "Control Loop", 5120, NULL, 3, NULL, 1);
+    xTaskCreatePinnedToCore(ATTALT, "IMU, Barometric Loop", 5120, NULL, 2, NULL, 1);
+    xTaskCreatePinnedToCore(Parachute, "Chute Ejcetion Loop", 5120, NULL, 2, NULL, 0);
     xTaskCreatePinnedToCore(SRG, "SD, RF, GPS LETSGO", 5120, NULL, 1, NULL, 0);
     // xTaskCreatePinnedToCore(printWatermark, "Watermark", 2048, NULL, 1, NULL, 0); // 스레드별 메모리 사용량 확인
 
@@ -208,8 +219,9 @@ void FlightControl(void *pvParameters)
 {
     ControlData_t control_data;
     ControlLog_t control_log_data;
+    LaunchData_t launch_data;
 
-    float setpoint = 90.0f * M_PI / 180.0f;
+    float setpoint = 0.0f;
     float integral = 0.0f;
     float previous_error = 0.0f;
     uint32_t last_time = 0;
@@ -218,6 +230,9 @@ void FlightControl(void *pvParameters)
     float pid_diff = 0.0f;
 
     static float previous_control_angle = 0.0f;
+
+    static bool launch_detected = false;
+    static uint32_t launch_timestamp = 0;
 
     last_time = micros();
     
@@ -259,7 +274,21 @@ void FlightControl(void *pvParameters)
 
     while(true) {
         // 제어 큐에서 데이터를 받아옴. 10ms 동안 데이터가 없으면 그냥 넘어감
-        if (xQueueReceive(ControlQueue, &control_data, pdMS_TO_TICKS(10)) == pdPASS) { // 100Hz 
+        if (xQueueReceive(ControlQueue, &control_data, pdMS_TO_TICKS(10)) == pdPASS) { // 100Hz
+            if (xQueueReceive(LaunchDataQueue, &launch_data, 0) == pdPASS) {
+                if (launch_data.launch_status == 1 && !launch_detected) {
+                    launch_detected = true;
+                    launch_timestamp = millis(); // 발사 '순간'의 시간을 기록
+                }
+            }
+
+            if (launch_detected && (millis() - launch_timestamp > 1500)) {
+                // 발사가 감지되었고, 그 시점으로부터 1.5초가 지났으면 90도로 변경
+                setpoint = 90.0f * M_PI / 180.0f;
+            } else {
+                // 발사 전이거나, 발사 후 아직 1.5초가 지나지 않았으면 0도를 유지
+                setpoint = 0.0f;
+            }
 
             uint32_t current_time = micros();
             float dt = (current_time - last_time) / 1000000.0;
@@ -377,6 +406,7 @@ void ATTALT(void *pvParameters)
             }
         }
         control_data.yaw = blackbox_data.RPY[2];
+        control_data.timestamp = millis() - Timer;
 
         blackbox_data.timestamp = millis() - Timer;
         blackbox_data.maxG = maxG;
@@ -401,6 +431,7 @@ void Parachute(void *pvParameters)
 {
     ParachuteData_t parachute_data;
     EjectionData_t ejection_data;
+    LaunchData_t launch_data;
 
     vTaskDelay(pdMS_TO_TICKS(7000)); // SD카드를 위해서 정지
     float angrygyro = 0.0;
@@ -412,6 +443,7 @@ void Parachute(void *pvParameters)
                 if(digitalRead(LAUNCH_PIN) == LOW) { // 2차 안전장치
                         if (!set_launch_time) {
                             ejection_data.launch_status = 1;
+                            launch_data.launch_status = 1;
                             set_launch_time = true;
                             chute.set_launch_time(parachute_data.timestamp);
                             // Serial.println(chute.Launch_time);
@@ -420,6 +452,7 @@ void Parachute(void *pvParameters)
                         // Serial.println(angrygyro);
                         ejection_data.eject_type = chute.eject(angrygyro, parachute_data.altitude, parachute_data.timestamp, 0); // 0은 메시지 타입. 필요시 변경 가능
                         xQueueSend(EjectionQueue, &ejection_data, pdMS_TO_TICKS(5));
+                        xQueueSend(LaunchDataQueue, &launch_data, pdMS_TO_TICKS(5));
                 }
             }
         }
