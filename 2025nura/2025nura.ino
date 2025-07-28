@@ -368,9 +368,9 @@ void FlightControl(void *pvParameters)
             servo_write_us(CH3, 1560 + control_angle);
             servo_write_us(CH4, 1530 + control_angle);
 
-            control_log_data.pwm[0] = 1500 + control_angle;
-            control_log_data.pwm[1] = 1500 + control_angle;
-            control_log_data.pwm[2] = 1560 + control_angle;
+            control_log_data.pwm[0] = 1490 + control_angle;
+            control_log_data.pwm[1] = 1515 + control_angle;
+            control_log_data.pwm[2] = 1580 + control_angle;
             control_log_data.pwm[3] = 1530 + control_angle;
 
             xQueueOverwrite(ControlLogQueue, &control_log_data);
@@ -387,7 +387,7 @@ void ATTALT(void *pvParameters)
     float maxG = 0;
 
     // 데이터 전송용 구조체 인스턴스 생성
-    static ControlData_t control_data = {0};
+    static ControlData_t control_data;
     static BlackBoxData_t blackbox_data = {0};
     static ParachuteData_t parachute_data = {0};
 
