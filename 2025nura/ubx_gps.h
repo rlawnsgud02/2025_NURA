@@ -92,7 +92,6 @@ private:
     int gpsSCL;
     char buffer[100];
     GpsData gps;
-    bool new_update_flag;
 
     void decode(char byte);
     void parse_PVT(char *packet);
@@ -112,6 +111,8 @@ public:
     void disable_all_nmea(bool disable=true);
     void enable_ubx(char id_);
     void printGps();
+
+    bool new_update_flag;
 };
 
 #endif

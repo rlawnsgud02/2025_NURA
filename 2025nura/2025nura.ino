@@ -221,7 +221,7 @@ void FlightControl(void *pvParameters)
     ControlLog_t control_log_data;
     LaunchData_t launch_data;
 
-    float setpoint = 0.0f;
+    float setpoint_deg = 0.0f;
     float integral = 0.0f;
     float previous_error = 0.0f;
     uint32_t last_time = 0;
@@ -268,10 +268,6 @@ void FlightControl(void *pvParameters)
     servo_write_us(CH4, 1530);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    // static const double simulated_errors[] = {0.0000,-0.0047,0.0148,0.0849,0.1839,0.3018,0.4324,0.5598,0.6818,0.7977,0.8987,0.9876,1.0671,1.1333,1.1901,1.2401,1.2816,1.3175,1.3494,1.3764,1.3999,1.4213,1.4394,1.4555,1.4700,1.4824,1.4933,1.5032,1.5117,1.5191,1.5258,1.5315,1.5365,1.5409,1.5448,1.5481,1.5511,1.5536,1.5559,1.5579,1.5596,1.5610,1.5624,1.5635,1.5645,1.5653,1.5661,1.5667,1.5673,1.5678,1.5682,1.5686,1.5689,1.5692,1.5694,1.5696,1.5698,1.5699,1.5701,1.5702,1.5703,1.5704,1.5704,1.5705,1.5705,1.5706,1.5706,1.5707,1.5707,1.5707,1.5707,1.5707,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708,1.5708};
-    // const int error_data_count = sizeof(simulated_errors) / sizeof(simulated_errors[0]);
-    // static int error_index = 0;
-
     while(true) {
         // 제어 큐에서 데이터를 받아옴. 10ms 동안 데이터가 없으면 그냥 넘어감
         if (xQueueReceive(ControlQueue, &control_data, pdMS_TO_TICKS(10)) == pdPASS) { // 100Hz
@@ -284,29 +280,31 @@ void FlightControl(void *pvParameters)
 
             if (launch_detected && (millis() - launch_timestamp > 1500)) {
                 // 발사가 감지되었고, 그 시점으로부터 1.5초가 지났으면 90도로 변경
-                setpoint = 90.0f * M_PI / 180.0f;
+                setpoint_deg = 90.0f;
             } else {
                 // 발사 전이거나, 발사 후 아직 1.5초가 지나지 않았으면 0도를 유지
-                setpoint = 0.0f;
+                setpoint_deg = 0.0f;
             }
 
             uint32_t current_time = micros();
             float dt = (current_time - last_time) / 1000000.0;
-            // double dt = 0.033;
             if (dt <= 0) {
                 dt = 0.01; // 최소 10ms로 설정
             }
             last_time = current_time;
 
             // P 제어
-            float current_yaw = control_data.yaw * M_PI / 180;
-            float error = setpoint - current_yaw;
+            float current_yaw = control_data.yaw;
+            float error_deg = setpoint_deg - current_yaw;
 
-            // double error = 0.0; // 기본값
-            // if (error_index < error_data_count) {
-            //     error = simulated_errors[error_index] - 1.57;
-            //     error_index++; // 다음 루프를 위해 인덱스 증가
-            // }
+            // -180과 180에서 pole이 발생하는 문제 해결
+            if (error_deg > 180.0f) {
+                error_deg -= 360.0f;
+            } else if (error_deg < -180.0f) {
+                error_deg += 360.0f;
+            }
+
+            float error = error_deg * M_PI / 180.0f; // 라디안으로 변환
 
             // I 제어
             integral += error * dt;
@@ -470,12 +468,13 @@ void SRG(void *pvParameters)
     static ControlLog_t control_log_data;
 
     while(true) {
-        gps.get_gps_data(gpsData);
-
+        bool gps_updated = gps.get_gps_data(gpsData);
+        
         xQueueReceive(BlackBoxQueue, &blackbox_data, 0);
         xQueueReceive(EjectionQueue, &ejection_data, 0);
         xQueueReceive(ControlLogQueue, &control_log_data, 0);
 
+        // SD 카드에 데이터 기록
         sd.setData(blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.maxG, blackbox_data.baro, gpsData, ejection_data.eject_type, ejection_data.launch_status, control_log_data.pwm); // setData 함수를 구조체를 받도록 수정 필요
         sd.write_data();
 
@@ -483,7 +482,7 @@ void SRG(void *pvParameters)
         char packet[100];
         int packet_len = 0;
 
-        if(gps.is_updated()) {
+        if(gps_updated) {
             packet_len = payload.get_imu_gps_packet(packet, blackbox_data.timestamp, blackbox_data.acc, blackbox_data.gyro, blackbox_data.mag, blackbox_data.RPY, blackbox_data.baro, gpsData, ejection_data.eject_type, ejection_data.launch_status); // get...packet 함수를 구조체를 받도록 수정 필요
         }
         else{
@@ -491,7 +490,7 @@ void SRG(void *pvParameters)
         }
         rf.transmit_packet(packet, packet_len);
 
-        vTaskDelay(pdMS_TO_TICKS(50)); // 20Hz 유지
+        vTaskDelay(pdMS_TO_TICKS(50)); // 20Hz 이하로 유지
     }
 }
 
