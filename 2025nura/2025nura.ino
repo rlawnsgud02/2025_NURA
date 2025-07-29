@@ -224,15 +224,17 @@ void FlightControl(void *pvParameters)
     float setpoint_deg = 0.0f;
     float integral = 0.0f;
     float previous_error = 0.0f;
-    uint32_t last_time = 0;
-
     static float previous_pid = 0.0f;
     float pid_diff = 0.0f;
 
     static float previous_control_angle = 0.0f;
+    static float previous_yaw_deg = 0.0f;
+    static float unwrapped_yaw_deg = 0.0f;
+    static int revolution_count = 0;
 
     static bool launch_detected = false;
     static uint32_t launch_timestamp = 0;
+    uint32_t last_time = 0;
 
     last_time = micros();
     
@@ -294,17 +296,22 @@ void FlightControl(void *pvParameters)
             last_time = current_time;
 
             // P 제어
-            float current_yaw = control_data.yaw;
-            float error_deg = setpoint_deg - current_yaw;
+            float current_yaw_deg = control_data.yaw;
 
-            // -180과 180에서 pole이 발생하는 문제 해결
-            if (error_deg > 180.0f) {
-                error_deg -= 360.0f;
-            } else if (error_deg < -180.0f) {
-                error_deg += 360.0f;
+            // 로켓이 한바퀴 이상 회전했을 때 이를 풀어줌. 지속적인 회전 방지.
+            float diff = current_yaw_deg - previous_yaw_deg;
+            if (diff > 180.0f) {
+                revolution_count--;
+            }
+            else if (diff < -180.0f) {
+                revolution_count++;
             }
 
-            float error = error_deg * M_PI / 180.0f; // 라디안으로 변환
+            unwrapped_yaw_deg = current_yaw_deg + 360.0f * revolution_count;
+            previous_yaw_deg = current_yaw_deg;
+
+            float error_deg = setpoint_deg - unwrapped_yaw_deg;
+            float error = error_deg * M_PI / 180.0f;
 
             // I 제어
             integral += error * dt;
@@ -347,23 +354,18 @@ void FlightControl(void *pvParameters)
             previous_error = error;
 
             // 서보 제어값 연산
-            float control_angle = constrain(pid_PWM, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
+            // float control_angle = constrain(pid_PWM, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
             // float control_angle = constrain(pid_PWM, -165, 165); // 약 +- 15도 제한 버전
-            // float control_angle = constrain(pid_PWM, -500, 500); 
+            float control_angle = constrain(pid_PWM, -500, 500); 
 
             // control_angle = round(control_angle / 10.0f) * 10.0f; // 10의 배수로 pwm을 넣어줌
-
-            // Pole 지점에서 급격하게 반대방향으로 회전하는 것을 막아줌
-            if(abs(control_angle - previous_control_angle) > 150) {
-                control_angle = previous_control_angle;
-            }
 
             previous_control_angle = control_angle;
 
             // 반시계 방향이 pwm 증가, 시계 방향이 pwm 감소
-            servo_write_us(CH1, 1500 + control_angle);
-            servo_write_us(CH2, 1500 + control_angle);
-            servo_write_us(CH3, 1560 + control_angle);
+            servo_write_us(CH1, 1490 + control_angle);
+            servo_write_us(CH2, 1515 + control_angle);
+            servo_write_us(CH3, 1580 + control_angle);
             servo_write_us(CH4, 1530 + control_angle);
 
             control_log_data.pwm[0] = 1490 + control_angle;
