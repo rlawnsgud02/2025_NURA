@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
     2025 NURA Avionics
     - Avionics Team: K. JunHyeong, K. RangHyeon, K. YongJin, S. SeungMin
-    - Last update: 2025.07.26
+    - Last update: 2025.07.29
    ---------------------------------------------------------------------- */
 
 #include "EBIMU_AHRS.h"
@@ -354,24 +354,25 @@ void FlightControl(void *pvParameters)
             previous_error = error;
 
             // 서보 제어값 연산
-            // float control_angle = constrain(pid_PWM, -111, 111); // +- 9.99도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
+            // float control_angle = constrain(pid_PWM, -111, 111); // 약 +- 10도 제한. 1us 당 0.09도 회전이므로, 111us가 최대 회전값
             // float control_angle = constrain(pid_PWM, -165, 165); // 약 +- 15도 제한 버전
-            float control_angle = constrain(pid_PWM, -500, 500); 
+            float control_angle = constrain(pid_PWM, -333, 333); // 약 +- 30도 제한 버전
+            // float control_angle = constrain(pid_PWM, -500, 500); // 약 +- 45도 제한 버전
 
             // control_angle = round(control_angle / 10.0f) * 10.0f; // 10의 배수로 pwm을 넣어줌
 
             previous_control_angle = control_angle;
 
             // 반시계 방향이 pwm 증가, 시계 방향이 pwm 감소
-            servo_write_us(CH1, 1490 + control_angle);
-            servo_write_us(CH2, 1515 + control_angle);
-            servo_write_us(CH3, 1580 + control_angle);
-            servo_write_us(CH4, 1530 + control_angle);
+            servo_write_us(CH1, 1410 + control_angle);
+            servo_write_us(CH2, 1595 + control_angle);
+            servo_write_us(CH3, 1610 + control_angle);
+            servo_write_us(CH4, 1500 + control_angle);
 
-            control_log_data.pwm[0] = 1490 + control_angle;
-            control_log_data.pwm[1] = 1515 + control_angle;
-            control_log_data.pwm[2] = 1580 + control_angle;
-            control_log_data.pwm[3] = 1530 + control_angle;
+            control_log_data.pwm[0] = 1410 + control_angle;
+            control_log_data.pwm[1] = 1595 + control_angle;
+            control_log_data.pwm[2] = 1610 + control_angle;
+            control_log_data.pwm[3] = 1500 + control_angle;
 
             xQueueOverwrite(ControlLogQueue, &control_log_data);
 

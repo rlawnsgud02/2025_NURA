@@ -103,7 +103,7 @@ bool ejection::eject_alt(double alt) {
 }
 
 bool ejection::eject_time() {
-    if (timer >= 12000 + Launch_time) {
+    if (timer >= 10000 + Launch_time) {
         servo_write(MIN);
         type = TIME_EJECTION;
         return true;
