@@ -41,9 +41,9 @@
 #define CH5 4 // Ejection Servo
 
 // #define Kp 0.05 
-#define Kp 0.05f
+#define Kp 0.13f
 #define Ki 0.0
-#define Kd 0.01f
+#define Kd 0.04f
 
 #define M_PI 3.1415926535897932384626433832795
 
@@ -280,7 +280,7 @@ void FlightControl(void *pvParameters)
                 }
             }
 
-            if (launch_detected && (millis() - launch_timestamp > 1500)) {
+            if (launch_detected && (millis() - launch_timestamp > 500)) {
                 // 발사가 감지되었고, 그 시점으로부터 1.5초가 지났으면 90도로 변경
                 setpoint_deg = 90.0f;
             } else {
