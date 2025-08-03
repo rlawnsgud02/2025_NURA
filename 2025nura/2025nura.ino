@@ -40,6 +40,11 @@
 #define CH4 3 // Canard 4
 #define CH5 4 // Ejection Servo
 
+#define CANARD1_MID 1450
+#define CANARD2_MID 1515
+#define CANARD3_MID 1470
+#define CANARD4_MID 1530
+
 // #define Kp 0.05 
 #define Kp 0.13f
 #define Ki 0.0
@@ -240,10 +245,10 @@ void FlightControl(void *pvParameters)
     
     // 서보 초기화 및 작동 테스트
     // 서보 캘리브레이션 결과 아래와 같이 줘야 수직값이다.
-    servo_write_us(CH1, 1500);
-    servo_write_us(CH2, 1500);
-    servo_write_us(CH3, 1560);
-    servo_write_us(CH4, 1530);
+    servo_write_us(CH1, CANARD1_MID);
+    servo_write_us(CH2, CANARD2_MID);
+    servo_write_us(CH3, CANARD3_MID);
+    servo_write_us(CH4, CANARD4_MID);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     servo_write_us(CH1, 1000);
@@ -252,10 +257,10 @@ void FlightControl(void *pvParameters)
     servo_write_us(CH4, 1000);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    servo_write_us(CH1, 1500);
-    servo_write_us(CH2, 1500);
-    servo_write_us(CH3, 1560);
-    servo_write_us(CH4, 1530);
+    servo_write_us(CH1, CANARD1_MID);
+    servo_write_us(CH2, CANARD2_MID);
+    servo_write_us(CH3, CANARD3_MID);
+    servo_write_us(CH4, CANARD4_MID);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     servo_write_us(CH1, 2000);
@@ -264,10 +269,10 @@ void FlightControl(void *pvParameters)
     servo_write_us(CH4, 2000);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    servo_write_us(CH1, 1500);
-    servo_write_us(CH2, 1500);
-    servo_write_us(CH3, 1560);
-    servo_write_us(CH4, 1530);
+    servo_write_us(CH1, CANARD1_MID);
+    servo_write_us(CH2, CANARD2_MID);
+    servo_write_us(CH3, CANARD3_MID);
+    servo_write_us(CH4, CANARD4_MID);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     while(true) {
@@ -364,15 +369,15 @@ void FlightControl(void *pvParameters)
             previous_control_angle = control_angle;
 
             // 반시계 방향이 pwm 증가, 시계 방향이 pwm 감소
-            servo_write_us(CH1, 1410 + control_angle);
-            servo_write_us(CH2, 1595 + control_angle);
-            servo_write_us(CH3, 1610 + control_angle);
-            servo_write_us(CH4, 1500 + control_angle);
+            servo_write_us(CH1, CANARD1_MID + control_angle);
+            servo_write_us(CH2, CANARD2_MID + control_angle);
+            servo_write_us(CH3, CANARD3_MID + control_angle);
+            servo_write_us(CH4, CANARD4_MID + control_angle);
 
-            control_log_data.pwm[0] = 1410 + control_angle;
-            control_log_data.pwm[1] = 1595 + control_angle;
-            control_log_data.pwm[2] = 1610 + control_angle;
-            control_log_data.pwm[3] = 1500 + control_angle;
+            control_log_data.pwm[0] = CANARD1_MID + control_angle;
+            control_log_data.pwm[1] = CANARD2_MID + control_angle;
+            control_log_data.pwm[2] = CANARD3_MID + control_angle;
+            control_log_data.pwm[3] = CANARD4_MID + control_angle;
 
             xQueueOverwrite(ControlLogQueue, &control_log_data);
 
