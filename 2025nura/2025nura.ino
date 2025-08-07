@@ -40,10 +40,10 @@
 #define CH4 3 // Canard 4
 #define CH5 4 // Ejection Servo
 
-#define CANARD1_MID 1450
-#define CANARD2_MID 1515
-#define CANARD3_MID 1470
-#define CANARD4_MID 1530
+#define CANARD1_MID 1480
+#define CANARD2_MID 1440
+#define CANARD3_MID 1520
+#define CANARD4_MID 1540
 
 // #define Kp 0.05 
 #define Kp 0.13f
