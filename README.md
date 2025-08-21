@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![launch](images/launch.gif)
+<img src="images/Launch.gif" width="400" />
 
 </div>
 
