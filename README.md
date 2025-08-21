@@ -1,6 +1,10 @@
 # 🚀 TEAM ASEC 2025 NURA Avionics
 
-https://github.com/user-attachments/assets/9526dfa7-05d8-4a3b-bd93-859809f0c99f
+<div align="center">
+
+![launch](images/launch.gif)
+
+</div>
 
 ## Introduction
 본 저장소는 **건국대학교 항공우주동아리 ASEC 로켓팀**이 2025년도 NURA 대회를 위해 개발한 **Avionics 시스템 코드**입니다.  
