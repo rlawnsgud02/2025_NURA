@@ -1,4 +1,4 @@
-# 🚀 TEAM ASEC 2025 NURA Avionics
+# 🚀 2025 NURA Avionics - TEAM ASEC
 ![Language](https://img.shields.io/badge/Language-C++-blue.svg)
 ![Framework](https://img.shields.io/badge/Framework-Arduino-00979D)
 ![MCU](https://img.shields.io/badge/MCU-ESP32-E7352C)
