@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="images/Launch.gif" width="400" />
+<img src="images/Launch.gif" width="350" />
 
 </div>
 
@@ -53,9 +53,9 @@
 <div align="center">
   
 <p float="left">
-  <img src="images/pcb1.jpg" width="300" />
-  <img src="images/pcb2.jpg" width="300" />
-  <img src="images/avionics_module.jpg" width="300" />
+  <img src="images/pcb1.jpg" width="280" />
+  <img src="images/pcb2.jpg" width="280" />
+  <img src="images/avionics_module.jpg" width="280" />
 </p>
 
 </div>
