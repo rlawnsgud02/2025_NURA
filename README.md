@@ -4,13 +4,14 @@
 ![MCU](https://img.shields.io/badge/MCU-ESP32-E7352C)
 ![RTOS](https://img.shields.io/badge/RTOS-FreeRTOS-orange)
 
+## Introduction
+
 <div align="center">
 
 <img src="images/Launch.gif" width="350" />
 
 </div>
 
-## Introduction
 본 Repository는 **건국대학교 항공우주동아리 ASEC 로켓팀**이 2025년도 NURA 대회를 위해 개발한 Avionics 코드입니다.  
 
 이번 대회의 목표는 **카나드를 통한 롤 제어**이며, 발사 후 로켓을 **90° 롤 회전 후 안정적으로 유지**함으로써 제어 성능을 입증하고자 합니다.
@@ -40,8 +41,7 @@
 * **안정적인 데이터 관리**: 모든 비행 데이터를 온보드 SD 카드에 CSV 파일로 저장하는 동시에, 447MHz RF 통신을 통해 지상국으로 실시간 원격 전송합니다.
 
 * **효율적인 통신 프로토콜**: `float` 데이터를 압축/스케일링하여 전송 데이터 크기를 최소화한 바이너리 패킷을 사용하여, 한정된 통신 환경에서의 데이터 전송 효율을 극대화합니다.
-   
-***
+
 
 ## Hardware Configuration
 
@@ -82,9 +82,8 @@
 각 PCB 층은 몰렉스 커넥터를 통해 연결되며, 핀이 90° 꺾인 **몰렉스 5268**을 PCB에 납땜하고, **몰렉스 5264**를 이용하여 상호 연결하도록 구현하였습니다.  
 
 📂 PCB 설계 파일은 아래 링크에서 확인하실 수 있습니다:  
-[Google Drive - PCB Files](https://drive.google.com/file/d/1G7LwpJqrYb3B2x5KDOTYG1Fmn34BIEfY/view?usp=drive_link)
+[Google Drive - PCB Files](https://drive.google.com/file/d/1G7LwpJqrYb3B2x5KDOTYG1Fmn34BIEfY/view?usp=drive_link)  
 
-***
 
 ## Code Description
 
@@ -135,9 +134,7 @@
 **데이터 저장 및 통신**
 * **`SDFatLogger`**: `SdFat` 라이브러리를 사용하여 모든 비행 데이터를 CSV 파일로 기록합니다. 비행마다 새 파일을 자동 생성하고, `flush()`를 통해 데이터 손실을 방지합니다.
 * **`Packet` (데이터 패킷 생성기)**: 전송 효율을 위해 `float` 데이터를 `int16_t` 등으로 **스케일링하고 압축**하여 표준화된 바이너리 패킷을 생성합니다. **Checksum**을 포함하여 데이터 무결성을 보장합니다.
-* **`NMT` (RF 통신)**: `AT 명령어`로 447MHz RF 모듈을 설정하고, `Packet` 클래스가 생성한 바이너리 데이터를 지상국으로 송신합니다.
-
-***
+* **`NMT` (RF 통신)**: `AT 명령어`로 447MHz RF 모듈을 설정하고, `Packet` 클래스가 생성한 바이너리 데이터를 지상국으로 송신합니다.  
 
 
 ## Contributors
